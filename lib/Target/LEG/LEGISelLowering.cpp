@@ -275,7 +275,7 @@ SDValue LEGTargetLowering::LowerFormalArguments(
 
     const unsigned Offset = VA.getLocMemOffset();
 
-    const int FI = MF.getFrameInfo()->CreateFixedObject(4, Offset, true);
+    const int FI = MF.getFrameInfo().CreateFixedObject(4, Offset, true);
     EVT PtrTy = getPointerTy(DAG.getDataLayout());
     SDValue FIPtr = DAG.getFrameIndex(FI, PtrTy);
 

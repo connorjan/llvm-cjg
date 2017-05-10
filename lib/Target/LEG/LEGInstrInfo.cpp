@@ -120,7 +120,7 @@ LEGInstrInfo::analyzeBranch(MachineBasicBlock &MBB, MachineBasicBlock *&TBB,
 /// This is only invoked in cases where analyzeBranch returns success. It
 /// returns the number of instructions that were removed.
 unsigned
-LEGInstrInfo::RemoveBranch(MachineBasicBlock &MBB) const {
+LEGInstrInfo::removeBranch(MachineBasicBlock &MBB, int *BytesRemoved) const {
   if (MBB.empty())
     return 0;
   unsigned NumRemoved = 0;
@@ -148,11 +148,12 @@ LEGInstrInfo::RemoveBranch(MachineBasicBlock &MBB) const {
 /// cases where analyzeBranch doesn't apply because there was no original
 /// branch to analyze.  At least this much must be implemented, else tail
 /// merging needs to be disabled.
-unsigned LEGInstrInfo::InsertBranch(MachineBasicBlock &MBB,
+unsigned LEGInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                     MachineBasicBlock *TBB,
                                     MachineBasicBlock *FBB,
                                     ArrayRef<MachineOperand> Cond,
-                                    const DebugLoc &DL) const {
+                                    const DebugLoc &DL,
+                                    int *BytesAdded) const {
   unsigned NumInserted = 0;
   
   // Insert any conditional branch.

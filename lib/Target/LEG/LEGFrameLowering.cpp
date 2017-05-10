@@ -40,12 +40,12 @@ LEGFrameLowering::LEGFrameLowering()
 
 bool LEGFrameLowering::hasFP(const MachineFunction &MF) const {
   return MF.getTarget().Options.DisableFramePointerElim(MF) ||
-         MF.getFrameInfo()->hasVarSizedObjects();
+         MF.getFrameInfo().hasVarSizedObjects();
 }
 
 uint64_t LEGFrameLowering::computeStackSize(MachineFunction &MF) const {
-  MachineFrameInfo *MFI = MF.getFrameInfo();
-  uint64_t StackSize = MFI->getStackSize();
+  MachineFrameInfo MFI = MF.getFrameInfo();
+  uint64_t StackSize = MFI.getStackSize();
   unsigned StackAlign = getStackAlignment();
   if (StackAlign > 0) {
     StackSize = alignTo(StackSize, StackAlign);

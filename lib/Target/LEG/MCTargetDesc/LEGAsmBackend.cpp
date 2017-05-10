@@ -168,7 +168,8 @@ public:
 
 MCAsmBackend *llvm::createLEGAsmBackend(const Target &T,
                                         const MCRegisterInfo &MRI,
-                                        const Triple &TT, StringRef CPU) {
+                                        const Triple &TT, StringRef CPU,
+                                        const MCTargetOptions &Options) {
   const uint8_t ABI = MCELFObjectTargetWriter::getOSABI(TT.getOS());
   return new ELFLEGAsmBackend(T, TT.getTriple(), ABI);
 }

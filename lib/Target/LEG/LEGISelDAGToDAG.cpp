@@ -38,8 +38,8 @@ public:
 
   bool SelectAddr(SDValue Addr, SDValue &Base, SDValue &Offset);
 
-  virtual const char *getPassName() const override {
-    return "LEG DAG->DAG Pattern Instruction Selection";
+  virtual StringRef getPassName() const override {
+    return StringRef("LEG DAG->DAG Pattern Instruction Selection");
   }
 
 private:
