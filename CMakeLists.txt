@@ -328,6 +328,7 @@ set(LLVM_ALL_TARGETS
   BPF
   Hexagon
   Lanai
+  LEG
   Mips
   MSP430
   NVPTX
