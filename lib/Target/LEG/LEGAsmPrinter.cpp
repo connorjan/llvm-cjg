@@ -66,7 +66,8 @@ public:
 } // end of anonymous namespace
 
 void LEGAsmPrinter::EmitFunctionBodyStart() {
-  //MCInstLowering.Initialize(Mang, &MF->getContext());
+  MCInstLowering.Initialize(&TM.getObjFileLowering()->getMangler(),
+                            &MF->getContext());
 }
 
 void LEGAsmPrinter::EmitFunctionEntryLabel() {
