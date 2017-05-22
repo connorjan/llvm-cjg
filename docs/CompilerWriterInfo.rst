@@ -119,6 +119,11 @@ Hexagon
 
 * `Hexagon Programmer's Reference Manuals and Hexagon ABI Specification (registration required, free sign-up) <https://developer.qualcomm.com/software/hexagon-dsp-sdk/tools>`_
 
+CJG
+-------
+
+* `The CJG RISC Architecture <http://connorgoldberg.com/projects/risc_721>`_
+
 Other relevant lists
 --------------------
 

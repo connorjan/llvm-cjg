@@ -70,6 +70,7 @@ StringRef Triple::getArchTypeName(ArchType Kind) {
   case renderscript32: return "renderscript32";
   case renderscript64: return "renderscript64";
   case leg:            return "leg";
+  case cjg:            return "cjg";
   }
 
   llvm_unreachable("Invalid ArchType!");
@@ -142,6 +143,7 @@ StringRef Triple::getArchTypePrefix(ArchType Kind) {
   case riscv32:
   case riscv64:     return "riscv";
   case leg:         return "leg";
+  case cjg:         return "cjg";
   }
 }
 
@@ -301,6 +303,7 @@ Triple::ArchType Triple::getArchTypeForLLVMName(StringRef Name) {
     .Case("renderscript32", renderscript32)
     .Case("renderscript64", renderscript64)
     .Case("leg", leg)
+    .Case("cjg", cjg)
     .Default(UnknownArch);
 }
 
@@ -416,6 +419,7 @@ static Triple::ArchType parseArch(StringRef ArchName) {
     .Case("renderscript32", Triple::renderscript32)
     .Case("renderscript64", Triple::renderscript64)
     .Case("leg", Triple::leg)
+    .Case("cjg", Triple::cjg)
     .Default(Triple::UnknownArch);
 
   // Some architectures require special parsing logic just to compute the
@@ -645,6 +649,7 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
   case Triple::wasm64:
   case Triple::xcore:
   case Triple::leg:
+  case Triple::cjg:
     return Triple::ELF;
 
   case Triple::ppc:
@@ -1178,6 +1183,7 @@ static unsigned getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
   case llvm::Triple::wasm32:
   case llvm::Triple::renderscript32:
   case llvm::Triple::leg:
+  case llvm::Triple::cjg:
     return 32;
 
   case llvm::Triple::aarch64:
@@ -1258,6 +1264,7 @@ Triple Triple::get32BitArchVariant() const {
   case Triple::wasm32:
   case Triple::renderscript32:
   case Triple::leg:
+  case Triple::cjg:
     // Already 32-bit.
     break;
 
@@ -1296,6 +1303,7 @@ Triple Triple::get64BitArchVariant() const {
   case Triple::sparcel:
   case Triple::shave:
   case Triple::leg:
+  case Triple::cjg:
     T.setArch(UnknownArch);
     break;
 
@@ -1382,6 +1390,7 @@ Triple Triple::getBigEndianArchVariant() const {
   case Triple::arm:
   case Triple::thumb:
   case Triple::leg:
+  case Triple::cjg:
     T.setArch(UnknownArch);
     break;
 
@@ -1468,6 +1477,7 @@ bool Triple::isLittleEndian() const {
   case Triple::renderscript32:
   case Triple::renderscript64:
   case Triple::leg:
+  case Triple::cjg:
     return true;
   default:
     return false;

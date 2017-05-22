@@ -95,6 +95,7 @@ public:
     renderscript32, // 32-bit RenderScript
     renderscript64, // 64-bit RenderScript
     leg,            // LEG
+    cjg,            // CJG
     LastArchType = renderscript64
   };
   enum SubArchType {

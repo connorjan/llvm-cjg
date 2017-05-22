@@ -1,0 +1,35 @@
+;===- ./lib/Target/CJG/LLVMBuild.txt ---------------------------*- Conf -*--===;
+;
+;                     The LLVM Compiler Infrastructure
+;
+; This file is distributed under the University of Illinois Open Source
+; License. See LICENSE.TXT for details.
+;
+;===------------------------------------------------------------------------===;
+;
+; This is an LLVMBuild description file for the components in this subdirectory.
+;
+; For more information on the LLVMBuild system, please see:
+;
+;   http://llvm.org/docs/LLVMBuild.html
+;
+;===------------------------------------------------------------------------===;
+
+[common]
+;subdirectories = InstPrinter MCTargetDesc TargetInfo
+subdirectories = TargetInfo
+
+[component_0]
+type = TargetGroup
+name = CJG
+parent = Target
+;has_asmprinter = 0
+;has_disassembler = 0
+
+[component_1]
+type = Library
+name = CJGCodeGen
+parent = CJG
+;required_libraries = Analysis AsmPrinter CodeGen Core MC SelectionDAG Support Target TransformUtils CJGAsmPrinter CJGDesc CJGInfo
+required_libraries = Core CodeGen CJGInfo Support Target
+add_to_library_groups = CJG

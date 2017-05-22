@@ -284,6 +284,12 @@ TEST(TripleTest, ParsedIDs) {
   EXPECT_EQ(Triple::FreeBSD, T.getOS());
   EXPECT_EQ(Triple::UnknownEnvironment, T.getEnvironment());
 
+  T = Triple("cjg-unknown-unknown");
+  EXPECT_EQ(Triple::cjg, T.getArch());
+  EXPECT_EQ(Triple::UnknownVendor, T.getVendor());
+  EXPECT_EQ(Triple::UnknownOS, T.getOS());
+  EXPECT_EQ(Triple::UnknownEnvironment, T.getEnvironment());
+
   T = Triple("huh");
   EXPECT_EQ(Triple::UnknownArch, T.getArch());
 }
@@ -587,6 +593,11 @@ TEST(TripleTest, BitWidthPredicates) {
   EXPECT_FALSE(T.isArch16Bit());
   EXPECT_FALSE(T.isArch32Bit());
   EXPECT_TRUE(T.isArch64Bit());
+
+  T.setArch(Triple::cjg);
+  EXPECT_FALSE(T.isArch16Bit());
+  EXPECT_TRUE(T.isArch32Bit());
+  EXPECT_FALSE(T.isArch64Bit());
 }
 
 TEST(TripleTest, BitWidthArchVariants) {
@@ -685,6 +696,10 @@ TEST(TripleTest, BitWidthArchVariants) {
   T.setArch(Triple::riscv64);
   EXPECT_EQ(Triple::riscv32, T.get32BitArchVariant().getArch());
   EXPECT_EQ(Triple::riscv64, T.get64BitArchVariant().getArch());
+
+  T.setArch(Triple::cjg);
+  EXPECT_EQ(Triple::cjg, T.get32BitArchVariant().getArch());
+  EXPECT_EQ(Triple::UnknownArch, T.get64BitArchVariant().getArch());
 }
 
 TEST(TripleTest, EndianArchVariants) {
@@ -774,6 +789,10 @@ TEST(TripleTest, EndianArchVariants) {
 
   T.setArch(Triple::lanai);
   EXPECT_EQ(Triple::lanai, T.getBigEndianArchVariant().getArch());
+  EXPECT_EQ(Triple::UnknownArch, T.getLittleEndianArchVariant().getArch());
+
+  T.setArch(Triple::cjg);
+  EXPECT_EQ(Triple::cjg, T.getBigEndianArchVariant().getArch());
   EXPECT_EQ(Triple::UnknownArch, T.getLittleEndianArchVariant().getArch());
 }
 

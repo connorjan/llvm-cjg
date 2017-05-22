@@ -326,6 +326,7 @@ set(LLVM_ALL_TARGETS
   AMDGPU
   ARM
   BPF
+  CJG
   Hexagon
   Lanai
   LEG
