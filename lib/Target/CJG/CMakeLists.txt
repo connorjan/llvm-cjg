@@ -2,6 +2,7 @@ set(LLVM_TARGET_DEFINITIONS CJG.td)
 
 tablegen(LLVM CJGGenRegisterInfo.inc -gen-register-info)
 tablegen(LLVM CJGGenInstrInfo.inc -gen-instr-info)
+tablegen(LLVM CJGGenMCCodeEmitter.inc -gen-emitter)
 
 add_public_tablegen_target(CJGCommonTableGen)
 

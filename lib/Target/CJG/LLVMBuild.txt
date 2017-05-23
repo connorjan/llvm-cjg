@@ -17,7 +17,7 @@
 
 [common]
 ;subdirectories = InstPrinter MCTargetDesc TargetInfo
-subdirectories = TargetInfo
+subdirectories = TargetInfo MCTargetDesc
 
 [component_0]
 type = TargetGroup
@@ -31,5 +31,5 @@ type = Library
 name = CJGCodeGen
 parent = CJG
 ;required_libraries = Analysis AsmPrinter CodeGen Core MC SelectionDAG Support Target TransformUtils CJGAsmPrinter CJGDesc CJGInfo
-required_libraries = Core CodeGen CJGInfo Support Target
+required_libraries = Core CodeGen CJGInfo Support Target 
 add_to_library_groups = CJG

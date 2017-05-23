@@ -20,5 +20,5 @@ type = Library
 name = CJGDesc
 parent = CJG
 ;required_libraries = MC Support LEGAsmPrinter LEGInfo
-required_libraries = MC Support
+required_libraries = MC Support CJGInfo
 add_to_library_groups = CJG

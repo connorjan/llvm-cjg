@@ -20,6 +20,7 @@
 // #include "LEGInstrInfo.h"
 // #include "LEGSelectionDAGInfo.h"
 // #include "LEGSubtarget.h"
+#include "MCTargetDesc/CJGMCTargetDesc.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/Target/TargetMachine.h"
 
@@ -34,15 +35,6 @@ public:
                    StringRef FS, const TargetOptions &Options,
                    Optional<Reloc::Model> RM, CodeModel::Model CM,
                    CodeGenOpt::Level OL);
-
-  // const LEGSubtarget * getSubtargetImpl() const {
-  //   return &Subtarget;
-  // }
-  
-  // virtual const TargetSubtargetInfo *
-  // getSubtargetImpl(const Function &) const override {
-  //   return &Subtarget;
-  // }
 
   // Pass Pipeline Configuration
   virtual TargetPassConfig *createPassConfig(PassManagerBase &PM) override;
