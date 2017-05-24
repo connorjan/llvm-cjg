@@ -1,4 +1,4 @@
-;===- ./lib/Target/CJG/MCTargetDesc/LLVMBuild.txt --------------*- Conf -*--===;
+;===- ./lib/Target/CJG/InstPrinter/LLVMBuild.txt ---------------*- Conf -*--===;
 ;
 ;                     The LLVM Compiler Infrastructure
 ;
@@ -17,7 +17,7 @@
 
 [component_0]
 type = Library
-name = CJGDesc
+name = CJGAsmPrinter
 parent = CJG
-required_libraries = MC Support CJGAsmPrinter CJGInfo
+required_libraries = MC Support
 add_to_library_groups = CJG

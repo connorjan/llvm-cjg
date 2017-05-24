@@ -12,8 +12,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "CJGMCTargetDesc.h"
-// #include "InstPrinter/LEGInstPrinter.h"
 #include "CJGMCAsmInfo.h"
+#include "InstPrinter/CJGInstPrinter.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
@@ -47,10 +47,18 @@ static MCAsmInfo *createCJGMCAsmInfo(const MCRegisterInfo &MRI,
   return new CJGMCAsmInfo(TT);
 }
 
+static MCInstPrinter *
+createCJGMCInstPrinter(const Triple &TT, unsigned SyntaxVariant,
+                       const MCAsmInfo &MAI, const MCInstrInfo &MII,
+                       const MCRegisterInfo &MRI) {
+  return new CJGInstPrinter(MAI, MII, MRI);
+}
+
 extern "C" void LLVMInitializeCJGTargetMC() {
   RegisterMCAsmInfoFn X(getTheCJGTarget(), createCJGMCAsmInfo);
   TargetRegistry::RegisterMCInstrInfo(getTheCJGTarget(), createCJGMCInstrInfo);
   TargetRegistry::RegisterMCRegInfo(getTheCJGTarget(), createCJGMCRegisterInfo);
   TargetRegistry::RegisterMCAsmBackend(getTheCJGTarget(), createCJGAsmBackend);
   TargetRegistry::RegisterMCCodeEmitter(getTheCJGTarget(), createCJGMCCodeEmitter);
+  TargetRegistry::RegisterMCInstPrinter(getTheCJGTarget(), createCJGMCInstPrinter);
 }
