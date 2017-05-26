@@ -25,6 +25,9 @@
 #define GET_INSTRINFO_MC_DESC
 #include "CJGGenInstrInfo.inc"
 
+#define GET_SUBTARGETINFO_MC_DESC
+#include "CJGGenSubtargetInfo.inc"
+
 #define GET_REGINFO_MC_DESC
 #include "CJGGenRegisterInfo.inc"
 

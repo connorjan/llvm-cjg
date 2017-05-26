@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// Implements the info about CJG Risc target spec.
+// Implements the info about CJG target spec.
 //
 //===----------------------------------------------------------------------===//
 
@@ -69,14 +69,32 @@ CJGTargetMachine::CJGTargetMachine(const Target &T, const Triple &TT,
                                    CodeModel::Model CM, CodeGenOpt::Level OL)
     : LLVMTargetMachine(T, computeDataLayout(TT, CPU, Options), TT, CPU, FS,
                         Options, getEffectiveRelocModel(TT, RM), CM, OL),
-      // Subtarget(TT, CPU, FS, *this),
+      Subtarget(TT, CPU, FS, *this),
       TLOF(make_unique<TargetLoweringObjectFileELF>()) {
   initAsmInfo();
 }
 
+namespace {
+class CJGPassConfig : public TargetPassConfig {
+public:
+  CJGPassConfig(CJGTargetMachine *TM, PassManagerBase &PM)
+      : TargetPassConfig(TM, PM) {}
+
+  CJGTargetMachine &getCJGTargetMachine() const {
+    return getTM<CJGTargetMachine>();
+  }
+
+  virtual bool addInstSelector() override;
+};
+}
+
 TargetPassConfig *CJGTargetMachine::createPassConfig(PassManagerBase &PM) {
-//  return new CJGPassConfig(this, PM);
-    return new TargetPassConfig(this, PM);
+  return new CJGPassConfig(this, PM);
+}
+
+bool CJGPassConfig::addInstSelector() {
+  addPass(createCJGISelDag(getCJGTargetMachine(), getOptLevel()));
+  return false;
 }
 
 // Force static initialization.

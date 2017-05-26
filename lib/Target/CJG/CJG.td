@@ -22,6 +22,7 @@ include "llvm/Target/Target.td"
 //===----------------------------------------------------------------------===//
 
 include "CJGRegisterInfo.td"
+include "CJGCallingConv.td"
 include "CJGInstrInfo.td"
 
 def CJGInstrInfo : InstrInfo;

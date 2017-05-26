@@ -14,12 +14,12 @@
 #ifndef CJGTARGETMACHINE_H
 #define CJGTARGETMACHINE_H
 
-// #include "LEG.h"
+#include "CJG.h"
 // #include "LEGFrameLowering.h"
 // #include "LEGISelLowering.h"
 // #include "LEGInstrInfo.h"
 // #include "LEGSelectionDAGInfo.h"
-// #include "LEGSubtarget.h"
+#include "CJGSubtarget.h"
 #include "MCTargetDesc/CJGMCTargetDesc.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/Target/TargetMachine.h"
@@ -27,7 +27,7 @@
 namespace llvm {
 
 class CJGTargetMachine : public LLVMTargetMachine {
-  // LEGSubtarget Subtarget;
+  CJGSubtarget Subtarget;
   std::unique_ptr<TargetLoweringObjectFile> TLOF;
 
 public:
@@ -42,6 +42,12 @@ public:
   TargetLoweringObjectFile *getObjFileLowering() const override {
     return TLOF.get();
   }
+
+  virtual const TargetSubtargetInfo *
+  getSubtargetImpl(const Function &) const override {
+    return &Subtarget;
+  }
+  
 };
 
 } // end namespace llvm

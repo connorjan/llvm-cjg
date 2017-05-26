@@ -8,6 +8,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "MCTargetDesc/CJGMCTargetDesc.h"
+// #include "MCTargetDesc/CJGFixupKinds.h"
 #include "llvm/MC/MCAsmBackend.h"
 #include "llvm/MC/MCAssembler.h"
 #include "llvm/MC/MCDirectives.h"
@@ -37,7 +38,8 @@ public:
   bool writeNopData(uint64_t Count, MCObjectWriter *OW) const override;
 
   unsigned getNumFixupKinds() const override {
-    return 1;
+//    return CJG::NumTargetFixupKinds;
+      return 1;
   }
   
   void applyFixup(const MCFixup &Fixup, char *Data, unsigned DataSize,

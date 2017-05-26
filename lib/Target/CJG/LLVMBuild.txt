@@ -29,6 +29,5 @@ has_asmprinter = 1
 type = Library
 name = CJGCodeGen
 parent = CJG
-;required_libraries = Analysis AsmPrinter CodeGen Core MC SelectionDAG Support Target TransformUtils CJGAsmPrinter CJGDesc CJGInfo
-required_libraries = AsmPrinter CJGAsmPrinter CJGDesc CJGInfo Core CodeGen MC Support Target
+required_libraries = AsmPrinter CJGAsmPrinter CJGDesc CJGInfo Core CodeGen MC SelectionDAG Support Target
 add_to_library_groups = CJG

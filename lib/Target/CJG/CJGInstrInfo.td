@@ -13,32 +13,40 @@
 
 include "CJGInstrFormats.td"
 
-def const16 : Operand<i32>; // Type of the constant/immediate value
+//def const16 : Operand<i32>; // Type of the constant/immediate value
+
+def CJGimm16 : Operand<i32>, ImmLeaf<i32, [{
+  return Imm >= 0 && Imm < 65536;
+}]>;
+
+// Target-independent nodes
+def RetFlag : SDNode<"CJGISD::RET_FLAG", SDTNone,
+                     [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 
 //===----------------------------------------------------------------------===//
 // ALU Instructions
 //===----------------------------------------------------------------------===//
 
-multiclass ALU<bits<5> opcode, string opstr> {
+multiclass ALU<bits<5> opcode, string opstr, SDNode opnode> {
 
   def rr : ALU_Inst_RR<opcode, (outs GPRegs:$ri),
                    (ins GPRegs:$rj, GPRegs:$rk),
                    !strconcat(opstr, "\t$ri, $rj, $rk"),
-                   [/*(set i32:$ri, (opnode i32:$rj, i32:$rk))*/]> {
+                   [(set i32:$ri, (opnode i32:$rj, i32:$rk))]> {
   }
   
   def ri : ALU_Inst_RI<opcode, (outs GPRegs:$ri),
-                   (ins GPRegs:$rj, const16:$const),
+                   (ins GPRegs:$rj, CJGimm16:$const),
                    !strconcat(opstr, "\t$ri, $rj, $const"),
-                   [/*(set i32:$ri, (opnode i32:$rj, const16:$const))*/]> {
+                   [(set i32:$ri, (opnode i32:$rj, CJGimm16:$const))]> {
   }
 }
 
-defm ADD  : ALU<0b01000, "add">;
-defm SUB  : ALU<0b01001, "sub">;
-defm AND  : ALU<0b01100, "and">;
-defm OR   : ALU<0b01110, "or">;
-defm XOR  : ALU<0b01111, "xor">;
+defm ADD  : ALU<0b01000, "add", add>;
+defm SUB  : ALU<0b01001, "sub", sub>;
+defm AND  : ALU<0b01100, "and", and>;
+defm OR   : ALU<0b01110, "or",  or>;
+defm XOR  : ALU<0b01111, "xor", xor>;
 
 //===----------------------------------------------------------------------===//
 // Data Transfer Instructions
@@ -53,7 +61,7 @@ multiclass DT<bits<5> opcode, string opstr> {
   }
   
   def ri : DT_Inst_RI<opcode, (outs GPRegs:$ri),
-                   (ins const16:$const),
+                   (ins CJGimm16:$const),
                    !strconcat(opstr, "\t$ri, $const"),
                    [/*(set i32:$ri, (opnode const16:$const))*/]> {
   }
@@ -73,7 +81,7 @@ multiclass CMP_Inst<bits<5> opcode, string opstr> {
   }
   
   def ri : ALU_Inst_RI<opcode, (outs),
-                   (ins GPRegs:$rj, const16:$const),
+                   (ins GPRegs:$rj, CJGimm16:$const),
                    !strconcat(opstr, "\t$rj, $const"), []> {
   }
 }

@@ -52,7 +52,7 @@ class ALU_Inst_RR<bits<5> opcode, dag outs, dag ins, string asmstr,
   let Inst{21-17} = rj;
   let Inst{16-12} = rk;
   let Inst{11-1} = 0;
-  let Inst{0} = 0; // control-bit for immediate mode
+  let Inst{0} = 0b0; // control-bit for immediate mode
 }
 
 // ALU register-immediate instruction
@@ -68,7 +68,7 @@ class ALU_Inst_RI<bits<5> opcode, dag outs, dag ins, string asmstr,
   let Inst{26-22} = ri;
   let Inst{21-17} = rj;
   let Inst{16-1} = const;
-  let Inst{0} = 1; // control-bit for immediate mode
+  let Inst{0} = 0b1; // control-bit for immediate mode
 }
 
 //===----------------------------------------------------------------------===//
@@ -86,7 +86,7 @@ class DT_Inst_RR<bits<5> opcode, dag outs, dag ins, string asmstr,
   let Opcode = opcode;
   let Inst{26-22} = ri;
   let Inst{21-17} = rj;
-  let Inst{16} = 0; // control-bit for immediate mode
+  let Inst{16} = 0b0; // control-bit for immediate mode
   let Inst{15-0} = 0; // immediate value not used
 }
 
@@ -101,6 +101,6 @@ class DT_Inst_RI<bits<5> opcode, dag outs, dag ins, string asmstr,
   let Opcode = opcode;
   let Inst{26-22} = ri;
   let Inst{21-17} = 0; // rj is not used for immediate mode
-  let Inst{16} = 1; // control-bit for immediate mode
+  let Inst{16} = 0b1; // control-bit for immediate mode
   let Inst{15-0} = const;
 }
