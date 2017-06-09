@@ -97,7 +97,8 @@ void CJGMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
                                          SmallVectorImpl<MCFixup> &Fixups,
                                          const MCSubtargetInfo &STI) const {
   const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
-  if (Desc.getSize() != 5) {
+  if (Desc.getSize() != 4) {
+    // Make sure instruction is 4 bytes
     llvm_unreachable("Unexpected instruction size!");
   }
 
