@@ -19,7 +19,7 @@ class CJGReg<bits<16> Enc, string n> : Register<n> {
 
 // Define all CPU registers
 foreach i = 0-31 in {
-  def R#i : CJGReg< #i, "r#i">;
+  def R#i : CJGReg< #i, "r"##i>;
 }
 
 def StatusReg : RegisterClass<"CJG", [i32], 32, (add
