@@ -24,9 +24,17 @@ foreach i = 0-31 in {
 
 def StatusReg : RegisterClass<"CJG", [i32], 32, (add
 	R0
-)>; 
+)>;
+
+def ProgramCounterReg : RegisterClass<"CJG", [i32], 32, (add
+	R1
+)>;
+
+def StackPointerReg : RegisterClass<"CJG", [i32], 32, (add
+	R2
+)>;
 
 // General purpose registers class
 def GPRegs : RegisterClass<"CJG", [i32], 32, (add
-	(sequence "R%u", 1, 31)
+	(sequence "R%u", 3, 31)
 )>;

@@ -39,8 +39,8 @@ const char *CJGTargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch ((CJGISD::NodeType)Opcode) {
   case CJGISD::FIRST_NUMBER:
     break;
-  case CJGISD::RET_FLAG:
-    return "CJGISD::RET_FLAG";
+ case CJGISD::RET_FLAG:
+   return "CJGISD::RET_FLAG";
   }
   return nullptr;
 }
@@ -56,8 +56,7 @@ CJGTargetLowering::CJGTargetLowering(const CJGTargetMachine &TM,
   computeRegisterProperties(STI.getRegisterInfo());
 
   // setStackPointerRegisterToSaveRestore(RISCV::X2_32);
-  // Can I do this for the status register?
-  setStackPointerRegisterToSaveRestore(CJG::R0);
+  setStackPointerRegisterToSaveRestore(CJG::R2);
 
   // TODO: add all necessary setOperationAction calls
 

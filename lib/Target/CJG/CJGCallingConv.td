@@ -29,12 +29,12 @@ def CC_CJG : CallingConv<[
   CCIfType<[i8, i16], CCPromoteToType<i32>>,
 
   // Regsiters used for parameters
-  CCIfType<[i32], CCAssignToReg<[R1, R2, R3, R4, R5, R6, R7, R8]>>,
+  CCIfType<[i32], CCAssignToReg<[R4, R5, R6, R7, R8]>>,
 
   // Integer values get stored in stack slots that are 4 bytes in
   // size and 4-byte aligned.
   CCIfType<[i32], CCAssignToStack<4, 4>>
 ]>;
 
-def CC_Save : CalleeSavedRegs<(add R0, R9, R10, R11, R12, R13, R14, R15, R16, 
-                                R17, R18, R19, R20, R21, R22, R23)>;
+def CC_Save : CalleeSavedRegs<(add R0, R1, R2, R3, R9, R10, R11, R12, R13, R14,
+                                R15, R16, R17, R18, R19, R20, R21, R22, R23)>;

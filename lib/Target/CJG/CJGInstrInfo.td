@@ -20,7 +20,7 @@ def CJGimm16 : Operand<i32>, ImmLeaf<i32, [{
 }]>;
 
 // Target-independent nodes
-def RetFlag : SDNode<"CJGISD::RET_FLAG", SDTNone,
+def CJGRetFlag : SDNode<"CJGISD::RET_FLAG", SDTNone,
                      [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 
 //===----------------------------------------------------------------------===//
@@ -87,3 +87,15 @@ multiclass CMP_Inst<bits<5> opcode, string opstr> {
 }
 
 defm CMP  : CMP_Inst<0b01010, "cmp">;
+
+//===----------------------------------------------------------------------===//
+// Return Instructions
+//===----------------------------------------------------------------------===//
+
+let isTerminator = 1, isReturn = 1, isBarrier = 1 in {
+  def RET : InstCJG<(outs), (ins),
+                    "ret",  [(CJGRetFlag)]> {
+    let Opcode = 0b00111;
+    let Inst{26-0}  = 0b000000000000000000000000000;
+  }
+}
