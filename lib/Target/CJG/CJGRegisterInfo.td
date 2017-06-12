@@ -18,20 +18,27 @@ class CJGReg<bits<16> Enc, string n> : Register<n> {
 }
 
 // Define all CPU registers
-foreach i = 0-31 in {
+
+// Special purpose registers
+def SR : CJGReg<0, "r0">;
+def PC : CJGReg<1, "r1">;
+def SP : CJGReg<2, "r2">;
+
+// General purpose registers
+foreach i = 3-31 in {
   def R#i : CJGReg< #i, "r"##i>;
 }
 
 def StatusReg : RegisterClass<"CJG", [i32], 32, (add
-	R0
+	SR // R0
 )>;
 
 def ProgramCounterReg : RegisterClass<"CJG", [i32], 32, (add
-	R1
+	PC //R1
 )>;
 
 def StackPointerReg : RegisterClass<"CJG", [i32], 32, (add
-	R2
+	SP //R2
 )>;
 
 // General purpose registers class

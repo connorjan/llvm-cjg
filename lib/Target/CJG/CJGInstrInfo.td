@@ -27,6 +27,8 @@ def CJGRetFlag : SDNode<"CJGISD::RET_FLAG", SDTNone,
 // ALU Instructions
 //===----------------------------------------------------------------------===//
 
+let Defs = [SR] in {
+
 multiclass ALU<bits<5> opcode, string opstr, SDNode opnode> {
 
   def rr : ALU_Inst_RR<opcode, (outs GPRegs:$ri),
@@ -42,6 +44,8 @@ multiclass ALU<bits<5> opcode, string opstr, SDNode opnode> {
   }
 }
 
+}
+
 defm ADD  : ALU<0b01000, "add", add>;
 defm SUB  : ALU<0b01001, "sub", sub>;
 defm AND  : ALU<0b01100, "and", and>;
@@ -52,7 +56,7 @@ defm XOR  : ALU<0b01111, "xor", xor>;
 // Data Transfer Instructions
 //===----------------------------------------------------------------------===//
 
-multiclass DT<bits<5> opcode, string opstr> {
+multiclass DT<bits<5> opcode, string opstr/*, SDNode opnode*/> {
   
   def rr : DT_Inst_RR<opcode, (outs GPRegs:$ri),
                    (ins GPRegs:$rj),
@@ -63,7 +67,7 @@ multiclass DT<bits<5> opcode, string opstr> {
   def ri : DT_Inst_RI<opcode, (outs GPRegs:$ri),
                    (ins CJGimm16:$const),
                    !strconcat(opstr, "\t$ri, $const"),
-                   [/*(set i32:$ri, (opnode const16:$const))*/]> {
+                   [/*(set i32:$ri, (opnode CJGimm16:$const))*/]> {
   }
 }
 
@@ -73,7 +77,7 @@ defm CPY  : DT<0b00010, "cpy">;
 // Comparison Instructions
 //===----------------------------------------------------------------------===//
 
-multiclass CMP_Inst<bits<5> opcode, string opstr> {
+multiclass CMP_Inst<bits<5> opcode, string opstr/*, SDNode opnode*/> {
   
   def rr : ALU_Inst_RR<opcode, (outs),
                    (ins GPRegs:$rj, GPRegs:$rk),
@@ -87,6 +91,12 @@ multiclass CMP_Inst<bits<5> opcode, string opstr> {
 }
 
 defm CMP  : CMP_Inst<0b01010, "cmp">;
+
+//===----------------------------------------------------------------------===//
+// Load/Store Instructions
+//===----------------------------------------------------------------------===//
+
+//defm LD   : LS_Inst<
 
 //===----------------------------------------------------------------------===//
 // Return Instructions

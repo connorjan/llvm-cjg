@@ -55,8 +55,7 @@ CJGTargetLowering::CJGTargetLowering(const CJGTargetMachine &TM,
   // Compute derived properties from the register classes
   computeRegisterProperties(STI.getRegisterInfo());
 
-  // setStackPointerRegisterToSaveRestore(RISCV::X2_32);
-  setStackPointerRegisterToSaveRestore(CJG::R2);
+  setStackPointerRegisterToSaveRestore(CJG::SP);
 
   // TODO: add all necessary setOperationAction calls
 

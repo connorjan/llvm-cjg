@@ -41,7 +41,7 @@ static MCInstrInfo *createCJGMCInstrInfo() {
 
 static MCRegisterInfo *createCJGMCRegisterInfo(const Triple &TT) {
   MCRegisterInfo *X = new MCRegisterInfo();
-  InitCJGMCRegisterInfo(X, CJG::R0);
+  InitCJGMCRegisterInfo(X, CJG::PC);
   return X;
 }
 

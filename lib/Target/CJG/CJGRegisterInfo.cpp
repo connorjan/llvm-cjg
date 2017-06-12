@@ -27,7 +27,7 @@
 
 using namespace llvm;
 
-CJGRegisterInfo::CJGRegisterInfo() : CJGGenRegisterInfo(CJG::R0) {}
+CJGRegisterInfo::CJGRegisterInfo() : CJGGenRegisterInfo(CJG::SR) {}
 
 const MCPhysReg *
 CJGRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
@@ -37,7 +37,9 @@ CJGRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
 BitVector CJGRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
 
-  Reserved.set(CJG::R0); // status regsiter
+  Reserved.set(CJG::SR); // status regsiter
+  Reserved.set(CJG::PC); // status regsiter
+  Reserved.set(CJG::SP); // status regsiter
   
   return Reserved;
 }
@@ -49,5 +51,5 @@ void CJGRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 }
 
 unsigned CJGRegisterInfo::getFrameRegister(const MachineFunction &MF) const {
-  return CJG::R0;
+  return CJG::SP;
 }
