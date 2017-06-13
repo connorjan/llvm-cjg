@@ -37,10 +37,9 @@ using namespace llvm;
 
 const char *CJGTargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch ((CJGISD::NodeType)Opcode) {
-  case CJGISD::FIRST_NUMBER:
-    break;
- case CJGISD::RET_FLAG:
-   return "CJGISD::RET_FLAG";
+    case CJGISD::FIRST_NUMBER:            break;
+    case CJGISD::CMP:                     return "CJGISD::CMP";
+    case CJGISD::RET_FLAG:                return "CJGISD::RET_FLAG";
   }
   return nullptr;
 }

@@ -25,6 +25,9 @@ def RetCC_CJG : CallingConv<[
 // CJG Argument Calling Conventions
 //===----------------------------------------------------------------------===//
 def CC_CJG : CallingConv<[
+  // Pass by value if the byval attribute is given
+  CCIfByVal<CCPassByVal<4, 4>>,
+
   // Promote i8/i16 arguments to i32.
   CCIfType<[i8, i16], CCPromoteToType<i32>>,
 

@@ -31,4 +31,46 @@ using namespace llvm;
 // Pin the vtable to this file.
 void CJGInstrInfo::anchor() {}
 
-CJGInstrInfo::CJGInstrInfo() : CJGGenInstrInfo() {}
+CJGInstrInfo::CJGInstrInfo() : CJGGenInstrInfo(), RI() {}
+
+void CJGInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
+                                  MachineBasicBlock::iterator I,
+                                  const DebugLoc &DL, unsigned DestReg,
+                                  unsigned SrcReg, bool KillSrc) const {
+
+  if (CJG::GPRegsRegClass.contains(DestReg, SrcReg)) {
+      BuildMI(MBB, I, DL, get(CJG::CPYrr), DestReg)
+        .addReg(SrcReg, getKillRegState(KillSrc));
+  }
+  else {
+    llvm_unreachable("Impossible reg-to-reg copy");
+  }
+}
+
+void CJGInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
+                                       MachineBasicBlock::iterator MI,
+                                       unsigned SrcReg, bool isKill,
+                                       int FrameIdx,
+                                       const TargetRegisterClass *RC,
+                                       const TargetRegisterInfo *TRI) const {
+  DebugLoc DL;
+  if (MI != MBB.end()) {
+    DL = MI->getDebugLoc();
+  }
+
+  BuildMI(MBB, MI, DL, get(CJG::PUSH))
+    .addReg(SrcReg);
+}
+
+void CJGInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
+                                        MachineBasicBlock::iterator MI,
+                                        unsigned DestReg, int FrameIdx,
+                                        const TargetRegisterClass *RC,
+                                        const TargetRegisterInfo *TRI) const{
+  DebugLoc DL;
+  if (MI != MBB.end()) {
+    DL = MI->getDebugLoc();
+  }
+
+  BuildMI(MBB, MI, DL, get(CJG::POP), DestReg);
+}
