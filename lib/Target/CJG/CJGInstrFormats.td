@@ -104,3 +104,23 @@ class DT_Inst_RI<bits<5> opcode, dag outs, dag ins, string asmstr,
   let Inst{16} = 0b1; // control-bit for immediate mode
   let Inst{15-0} = const;
 }
+
+//===----------------------------------------------------------------------===//
+// Load/Store Instructions
+//===----------------------------------------------------------------------===//
+
+class LS_Inst<bits<5> opcode, dag outs, dag ins, string asmstr,
+                list<dag> pattern>
+    : InstCJG<outs, ins, asmstr, pattern> {
+
+  bits<5> ri;
+  bits<5> rj;
+  bits<1> control;
+  bits<16> addr;
+
+  let Opcode = opcode;
+  let Inst{26-22} = ri;
+  let Inst{21-17} = rj;
+  let Inst{16} = control;
+  let Inst{15-0} = addr;
+}

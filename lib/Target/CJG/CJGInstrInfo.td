@@ -14,10 +14,6 @@
 include "CJGInstrFormats.td"
 
 
-def CJGimm16 : Operand<i32>, ImmLeaf<i32, [{
-  return Imm >= 0 && Imm < 65536;
-}]>;
-
 //===----------------------------------------------------------------------===//
 // Type Profiles.
 //===----------------------------------------------------------------------===//
@@ -32,6 +28,27 @@ def SDT_CJGCmp  : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>]>;
 def CJGretFlag : SDNode<"CJGISD::RET_FLAG", SDTNone,
                      [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 def CJGcmp     : SDNode<"CJGISD::CMP", SDT_CJGCmp, [SDNPOutGlue]>;
+
+//===----------------------------------------------------------------------===//
+// CJG Operand Definitions.
+//===----------------------------------------------------------------------===//
+
+// Immediate/Constant operand for ALU/data-transfer instructions
+def CJGimm16 : Operand<i32>, ImmLeaf<i32, [{
+  return Imm >= 0 && Imm < 65536;
+}]>;
+
+// Address operand
+def memsrc : Operand<i32> {
+  let PrintMethod = "printMemSrcOperand";
+  let MIOperandInfo = (ops GPRegs, CJGimm16);
+}
+
+//===----------------------------------------------------------------------===//
+// CJG Complex Pattern Definitions.
+//===----------------------------------------------------------------------===//
+
+def addr : ComplexPattern<iPTR, 2, "SelectAddr", [], []>;
 
 //===----------------------------------------------------------------------===//
 // ALU Instructions
@@ -80,7 +97,7 @@ let isAsCheapAsAMove = 1 in {
                       [(set GPRegs:$ri, CJGimm16:$const)]>;
 } // isAsCheapAsAMove = 1
 
-let Defs = [SP], Uses = [SP], hasSideEffects=0 in {
+let Defs = [SP], hasSideEffects=0 in {
 
   def PUSH  : DT_Inst_RR<0b00011,
                     (outs), (ins GPRegs:$rj),
@@ -96,20 +113,20 @@ let Defs = [SP], Uses = [SP], hasSideEffects=0 in {
     let rj = 0b00000; // source register not used
   }
 
-} // Defs = [SP], Uses = [SP], hasSideEffects=0
+} // Defs = [SP], hasSideEffects=0
 
 //===----------------------------------------------------------------------===//
 // Comparison Instructions
 //===----------------------------------------------------------------------===//
 
-let Defs = [SR], Uses = [SR] in {
+let Defs = [SR] in {
 
-multiclass CMP_Inst<bits<5> opcode, string opstr, SDNode opnode> {
+multiclass CMP_Inst<bits<5> opcode, string opstr> {
   
   def rr : ALU_Inst_RR<opcode, (outs),
                    (ins GPRegs:$rj, GPRegs:$rk),
                    !strconcat(opstr, "\t$rj, $rk"),
-                   [(opnode GPRegs:$rj, GPRegs:$rk),
+                   [(CJGcmp GPRegs:$rj, GPRegs:$rk),
                    (implicit SR)]> {
     let ri = 0b00000;
   }
@@ -117,21 +134,35 @@ multiclass CMP_Inst<bits<5> opcode, string opstr, SDNode opnode> {
   def ri : ALU_Inst_RI<opcode, (outs),
                    (ins GPRegs:$rj, CJGimm16:$const),
                    !strconcat(opstr, "\t$rj, $const"),
-                   [(opnode GPRegs:$rj, CJGimm16:$const),
+                   [(CJGcmp GPRegs:$rj, CJGimm16:$const),
                    (implicit SR)]> {
     let ri = 0b00000;
   }
 }
 
-defm CMP  : CMP_Inst<0b01010, "cmp", CJGcmp>;
+defm CMP  : CMP_Inst<0b01010, "cmp">;
 
-} // Defs = [SR], Uses = [SR]
+} // Defs = [SR]
 
 //===----------------------------------------------------------------------===//
 // Load/Store Instructions
 //===----------------------------------------------------------------------===//
 
-//defm LD   : LS_Inst<
+def LD  : LS_Inst<0b00000,
+                  (outs GPRegs:$ri), (ins memsrc:$addr),
+                  "ld\t$ri, $addr",
+                  [(set GPRegs:$ri, (load addr:$addr))]> {
+  let rj = 0b00000;   // For now set rj and control to 0
+  let control = 0b1;  // This forces absolute addressing mode
+}
+
+def ST  : LS_Inst<0b00001,
+                  (outs), (ins memsrc:$addr, GPRegs:$ri),
+                  "st\t$addr, $ri",
+                  [(store GPRegs:$ri, addr:$addr)]> {
+  let rj = 0b00000;   // For now set rj and control to 0
+  let control = 0b1;  // This forces absolute addressing mode
+}
 
 //===----------------------------------------------------------------------===//
 // Return Instructions

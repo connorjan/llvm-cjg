@@ -21,7 +21,7 @@
 using namespace llvm;
 
 CJGFrameLowering::CJGFrameLowering(const CJGSubtarget &STI)
-    : TargetFrameLowering(TargetFrameLowering::StackGrowsDown, 
+    : TargetFrameLowering(TargetFrameLowering::StackGrowsUp, 
                             /*StackAlignment=*/4,
                             /*LocalAreaOffset=*/0) {}
 

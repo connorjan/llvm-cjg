@@ -50,6 +50,26 @@ void CJGInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
     return;
   }
 
-  assert(Op.isExpr() && "Unknown operand kind in printOperand");
-  Op.getExpr()->print(O, &MAI);
+  llvm_unreachable("Unknown operand");
+  // assert(Op.isExpr() && "Unknown operand kind in printOperand");
+  // Op.getExpr()->print(O, &MAI);
+}
+
+// Print a memsrc (defined in CJGInstrInfo.td)
+// This is an operand which defines a location for loading or storing which
+// is a register offset by an immediate value
+void CJGInstPrinter::printMemSrcOperand(const MCInst *MI, unsigned OpNo,
+                                           raw_ostream &O) {
+  const MCOperand &BaseAddr = MI->getOperand(OpNo);
+  const MCOperand &Offset = MI->getOperand(OpNo + 1);
+  
+  assert(Offset.isImm() && "Expected immediate in displacement field");
+
+  O << "M[";
+  printRegName(O, BaseAddr.getReg());
+  unsigned OffsetVal = Offset.getImm();
+  if (OffsetVal) {
+    O << "+" << Offset.getImm();
+  }
+  O << "]";
 }

@@ -31,15 +31,15 @@ CJGRegisterInfo::CJGRegisterInfo() : CJGGenRegisterInfo(CJG::SR) {}
 
 const MCPhysReg *
 CJGRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
-  return CC_Save_SaveList;
+  return CC_Save_SaveList; // from tablegen
 }
 
 BitVector CJGRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
 
   Reserved.set(CJG::SR); // status regsiter
-  Reserved.set(CJG::PC); // status regsiter
-  Reserved.set(CJG::SP); // status regsiter
+  Reserved.set(CJG::PC); // program counter
+  Reserved.set(CJG::SP); // stack pointer
   
   return Reserved;
 }
@@ -47,7 +47,41 @@ BitVector CJGRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
 void CJGRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                                             int SPAdj, unsigned FIOperandNum,
                                             RegScavenger *RS) const {
-  llvm_unreachable("Subroutines not supported yet");
+  MachineInstr &MI = *II;
+  MachineBasicBlock &MBB = *MI.getParent();
+  const MachineFunction &MF = *MBB.getParent();
+  const MachineFrameInfo MFI = MF.getFrameInfo();
+  MachineOperand &FIOp = MI.getOperand(FIOperandNum);
+  unsigned FI = FIOp.getIndex();
+    
+  // Determine if we can eliminate the index from this kind of instruction.
+  unsigned ImmOpIdx = 0;
+  switch (MI.getOpcode()) {
+  default:
+    // Not supported yet.
+    return;
+  case CJG::LD:
+  case CJG::ST:
+    ImmOpIdx = FIOperandNum + 1;
+    break;
+  }
+    
+    MI.dump();
+    MBB.dump();
+    MFI.dump(MF);
+    FIOp.dump();
+
+
+  // FIXME: check the size of offset.
+  MachineOperand &ImmOp = MI.getOperand(ImmOpIdx);
+  int Offset = MFI.getObjectOffset(FI) + MFI.getStackSize() + ImmOp.getImm();
+  if (Offset % 4) {
+    llvm_unreachable("Offset must be aligned to 4 bytes because memory is "
+                     "32-bit word addressable only");
+  }
+  int wordOffset = Offset/4;
+  FIOp.ChangeToRegister(CJG::SP, false);
+  ImmOp.setImm(wordOffset);
 }
 
 unsigned CJGRegisterInfo::getFrameRegister(const MachineFunction &MF) const {
