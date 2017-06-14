@@ -66,12 +66,6 @@ void CJGRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     break;
   }
     
-    MI.dump();
-    MBB.dump();
-    MFI.dump(MF);
-    FIOp.dump();
-
-
   // FIXME: check the size of offset.
   MachineOperand &ImmOp = MI.getOperand(ImmOpIdx);
   int Offset = MFI.getObjectOffset(FI) + MFI.getStackSize() + ImmOp.getImm();
