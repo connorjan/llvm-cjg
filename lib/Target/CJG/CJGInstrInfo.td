@@ -38,6 +38,11 @@ def CJGimm16 : Operand<i32>, ImmLeaf<i32, [{
   return Imm >= 0 && Imm < 65536;
 }]>;
 
+// Immediate/Constant operand for rotate/shift instructions
+def CJGimm6 : Operand<i32>, ImmLeaf<i32, [{
+  return Imm >= 0 && Imm < 64;
+}]>;
+
 // Address operand
 def memsrc : Operand<i32> {
   let PrintMethod = "printMemSrcOperand";
@@ -79,6 +84,41 @@ defm AND  : ALU<0b01100, "and", and>;
 defm OR   : ALU<0b01110, "or",  or>;
 defm XOR  : ALU<0b01111, "xor", xor>;
 
+} // Defs = [SR]
+
+//===----------------------------------------------------------------------===//
+// Shift/Rotate Instructions
+//===----------------------------------------------------------------------===//
+
+let Defs = [SR] in {
+
+multiclass RotShift<bits<3> rs_op, string opstr, SDNode opnode> {
+
+  def rr : RotShift_Inst_RR<rs_op, 
+                          (outs GPRegs:$ri),
+                          (ins GPRegs:$rj, GPRegs:$rk),
+                          !strconcat(opstr, "\t$ri, $rj, $rk"),
+                          [(set GPRegs:$ri, (opnode GPRegs:$rj, GPRegs:$rk)),
+                          (implicit SR)]> {}
+
+  def ri : RotShift_Inst_RI<rs_op,
+                   (outs GPRegs:$ri),
+                   (ins GPRegs:$rj, CJGimm6:$const),
+                   !strconcat(opstr, "\t$ri, $rj, $const"),
+                   [(set GPRegs:$ri, (opnode GPRegs:$rj, CJGimm6:$const)),
+                    (implicit SR)]> {}
+}
+
+defm SRL  : RotShift<0b000, "srl", srl>; // shift right logical
+defm SLL  : RotShift<0b001, "sll", shl>; // shift left logical
+defm SRA  : RotShift<0b010, "sra", sra>; // shift left arithmetic
+defm RTR  : RotShift<0b100, "rtr", rotr>; // rotate right
+defm RTL  : RotShift<0b101, "rtl", rotl>; // rotate left
+
+let Uses = [SR] in {
+  //defm RRC  : RotShift<0b110, "rrc">; // rotate right through carry
+  //defm RLC  : RotShift<0b111, "rlc">; // rotate left through carry
+} // Uses = [SR]
 } // Defs = [SR]
 
 //===----------------------------------------------------------------------===//

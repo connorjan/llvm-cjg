@@ -72,6 +72,44 @@ class ALU_Inst_RI<bits<5> opcode, dag outs, dag ins, string asmstr,
 }
 
 //===----------------------------------------------------------------------===//
+// Shift/Rotate Instructions
+//===----------------------------------------------------------------------===//
+
+// register-register
+class RotShift_Inst_RR<bits<3> rs_op, dag outs, dag ins,
+                  string asmstr, list<dag> pattern>
+    : InstCJG<outs, ins, asmstr, pattern> {
+  bits<5> ri; // destination register
+  bits<5> rj; // source 1 register (data)
+  bits<5> rk; // source 2 register (shift/rotate amount)
+
+  let Opcode = 0b10000;
+  let Inst{26-22} = ri;
+  let Inst{21-17} = rj;
+  let Inst{16-12} = rk;
+  let Inst{11-4} = 0b00000000; // unused
+  let Inst{3-1} = rs_op; // which rotate/shift operation to perform
+  let Inst{0} = 0b0; // Control bit to use rk instead of immediate
+}
+
+// register-immediate
+class RotShift_Inst_RI<bits<3> rs_op, dag outs, dag ins,
+                  string asmstr, list<dag> pattern>
+    : InstCJG<outs, ins, asmstr, pattern> {
+  bits<5> ri; // destination register
+  bits<5> rj; // source 1 register (data)
+  bits<6> constant; // immediate value for shift/rotate amount
+
+  let Opcode = 0b10000;
+  let Inst{26-22} = ri;
+  let Inst{21-17} = rj;
+  let Inst{16-11} = constant;
+  let Inst{10-4} = 0b0000000; // unused
+  let Inst{3-1} = rs_op; // which rotate/shift operation to perform
+  let Inst{0} = 0b1; // Control bit to use rk instead of immediate
+}
+
+//===----------------------------------------------------------------------===//
 // Data Transfer Instructions
 //===----------------------------------------------------------------------===//
 
