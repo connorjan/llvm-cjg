@@ -35,7 +35,7 @@ def CJGcmp     : SDNode<"CJGISD::CMP", SDT_CJGCmp, [SDNPOutGlue]>;
 
 // Immediate/Constant operand for ALU/data-transfer instructions
 def CJGimm16 : Operand<i32>, ImmLeaf<i32, [{
-  return Imm >= 0 && Imm < 65536;
+  return Imm >= -32768 && Imm < 32768;
 }]>;
 
 // Immediate/Constant operand for rotate/shift instructions
@@ -83,6 +83,31 @@ defm SUB  : ALU<0b01001, "sub", sub>;
 defm AND  : ALU<0b01100, "and", and>;
 defm OR   : ALU<0b01110, "or",  or>;
 defm XOR  : ALU<0b01111, "xor", xor>;
+
+// Instructions that need their own dag pattern
+
+def NOTrr : ALU_Inst_RR<0b01011,
+                    (outs GPRegs:$ri),
+                    (ins GPRegs:$rj),
+                    "not\t$ri, $rj",
+                    [(set GPRegs:$ri, (not GPRegs:$rj)),
+                     (implicit SR)]> {
+  let rk = 0b00000; // rk not used
+}
+
+def BICrr : ALU_Inst_RR<0b01101,
+                    (outs GPRegs:$ri),
+                    (ins GPRegs:$rj, GPRegs:$rk),
+                    "bic\t$ri, $rj, $rk",
+                    [(set GPRegs:$ri, (and GPRegs:$rj, (not GPRegs:$rk))),
+                     (implicit SR)]> {}
+
+def BICri : ALU_Inst_RR<0b01101,
+                    (outs GPRegs:$ri),
+                    (ins GPRegs:$rj, CJGimm16:$const),
+                    "bic\t$ri, $rj, $const",
+                    [(set GPRegs:$ri, (and GPRegs:$rj, (not CJGimm16:$const))),
+                     (implicit SR)]> {}
 
 } // Defs = [SR]
 
