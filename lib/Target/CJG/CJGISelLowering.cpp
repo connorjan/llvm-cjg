@@ -40,6 +40,8 @@ const char *CJGTargetLowering::getTargetNodeName(unsigned Opcode) const {
     case CJGISD::FIRST_NUMBER:            break;
     case CJGISD::CMP:                     return "CJGISD::CMP";
     case CJGISD::RET_FLAG:                return "CJGISD::RET_FLAG";
+    case CJGISD::BR_CC:                   return "CJGISD::BR_CC";
+    case CJGISD::SELECT_CC:               return "CJGISD::SELECT_CC";
   }
   return nullptr;
 }
@@ -60,20 +62,20 @@ CJGTargetLowering::CJGTargetLowering(const CJGTargetMachine &TM,
 
   setBooleanContents(ZeroOrOneBooleanContent);
 
-  // // Function alignments (log2)
-  // setMinFunctionAlignment(3);
-  // setPrefFunctionAlignment(3);
+  setOperationAction(ISD::BR_JT,      MVT::Other,   Expand);
+  setOperationAction(ISD::BR_CC,      MVT::i32,     Custom);
+  setOperationAction(ISD::BRCOND,     MVT::Other,   Expand);
+  setOperationAction(ISD::SELECT,     MVT::i32,     Expand);
+  setOperationAction(ISD::SELECT_CC,  MVT::i32,     Custom);
 
-  // // inline memcpy() for kernel to see explicit copy
-  // MaxStoresPerMemset = MaxStoresPerMemsetOptSize = 128;
-  // MaxStoresPerMemcpy = MaxStoresPerMemcpyOptSize = 128;
-  // MaxStoresPerMemmove = MaxStoresPerMemmoveOptSize = 128;
 }
 
 SDValue CJGTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
-  default:
-    llvm_unreachable("unimplemented operand");
+    case ISD::BR_CC:            return LowerBR_CC(Op, DAG);
+    case ISD::SELECT_CC:        return LowerSELECT_CC(Op, DAG);
+    default:
+      llvm_unreachable("unimplemented operand");
   }
 }
 
@@ -173,4 +175,123 @@ CJGTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
   }
 
   return DAG.getNode(CJGISD::RET_FLAG, DL, MVT::Other, RetOps);
+}
+
+static SDValue EmitCMP(SDValue &LHS, SDValue &RHS, SDValue &TargetCC,
+                       ISD::CondCode CC, const SDLoc &dl, SelectionDAG &DAG) {
+
+  assert(!LHS.getValueType().isFloatingPoint() && "We don't handle FP yet");
+
+  CJGCC::CondCodes TCC = CJGCC::COND_INVALID;
+  switch (CC) {
+  default: llvm_unreachable("Invalid integer condition!");
+  case ISD::SETEQ:
+    TCC = CJGCC::COND_Z;     // aka COND_Z
+    // Minor optimization: if LHS is a constant, swap operands, then the
+    // constant can be folded into comparison.
+    if (LHS.getOpcode() == ISD::Constant) {
+      std::swap(LHS, RHS);
+    }
+    break;
+  case ISD::SETNE:
+    TCC = CJGCC::COND_NZ;    // aka COND_NZ
+    // Minor optimization: if LHS is a constant, swap operands, then the
+    // constant can be folded into comparison.
+    if (LHS.getOpcode() == ISD::Constant) {
+      std::swap(LHS, RHS);
+    }
+    break;
+  case ISD::SETULE:
+    std::swap(LHS, RHS);
+    LLVM_FALLTHROUGH;
+  case ISD::SETUGE:
+    // Turn lhs u>= rhs with lhs constant into rhs u< lhs+1, this allows us to
+    // fold constant into instruction.
+    if (const ConstantSDNode * C = dyn_cast<ConstantSDNode>(LHS)) {
+      LHS = RHS;
+      RHS = DAG.getConstant(C->getSExtValue() + 1, dl, C->getValueType(0));
+      TCC = CJGCC::COND_NC;
+      break;
+    }
+    TCC = CJGCC::COND_C;    // aka COND_C
+    break;
+  case ISD::SETUGT:
+    std::swap(LHS, RHS);
+    LLVM_FALLTHROUGH;
+  case ISD::SETULT:
+    // Turn lhs u< rhs with lhs constant into rhs u>= lhs+1, this allows us to
+    // fold constant into instruction.
+    if (const ConstantSDNode * C = dyn_cast<ConstantSDNode>(LHS)) {
+      LHS = RHS;
+      RHS = DAG.getConstant(C->getSExtValue() + 1, dl, C->getValueType(0));
+      TCC = CJGCC::COND_C;
+      break;
+    }
+    TCC = CJGCC::COND_NC;    // aka COND_NC
+    break;
+  case ISD::SETLE:
+    std::swap(LHS, RHS);
+    LLVM_FALLTHROUGH;
+  case ISD::SETGE:
+    // Turn lhs >= rhs with lhs constant into rhs < lhs+1, this allows us to
+    // fold constant into instruction.
+    if (const ConstantSDNode * C = dyn_cast<ConstantSDNode>(LHS)) {
+      LHS = RHS;
+      RHS = DAG.getConstant(C->getSExtValue() + 1, dl, C->getValueType(0));
+      TCC = CJGCC::COND_L;
+      break;
+    }
+    TCC = CJGCC::COND_GE;
+    break;
+  case ISD::SETGT:
+    std::swap(LHS, RHS);
+    LLVM_FALLTHROUGH;
+  case ISD::SETLT:
+    // Turn lhs < rhs with lhs constant into rhs >= lhs+1, this allows us to
+    // fold constant into instruction.
+    if (const ConstantSDNode * C = dyn_cast<ConstantSDNode>(LHS)) {
+      LHS = RHS;
+      RHS = DAG.getConstant(C->getSExtValue() + 1, dl, C->getValueType(0));
+      TCC = CJGCC::COND_GE;
+      break;
+    }
+    TCC = CJGCC::COND_L;
+    break;
+  }
+
+  TargetCC = DAG.getConstant(TCC, dl, MVT::i32);
+  return DAG.getNode(CJGISD::CMP, dl, MVT::Glue, LHS, RHS);
+}
+
+SDValue CJGTargetLowering::LowerBR_CC(SDValue Op, SelectionDAG &DAG) const {
+  SDValue Chain = Op.getOperand(0);
+  ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(1))->get();
+  SDValue LHS   = Op.getOperand(2);
+  SDValue RHS   = Op.getOperand(3);
+  SDValue Dest  = Op.getOperand(4);
+  SDLoc dl  (Op);
+
+  SDValue TargetCC;
+  SDValue Flag = EmitCMP(LHS, RHS, TargetCC, CC, dl, DAG);
+
+  return DAG.getNode(CJGISD::BR_CC, dl, Op.getValueType(),
+                     Chain, Dest, TargetCC, Flag);
+}
+
+SDValue CJGTargetLowering::LowerSELECT_CC(SDValue Op,
+                                             SelectionDAG &DAG) const {
+  SDValue LHS    = Op.getOperand(0);
+  SDValue RHS    = Op.getOperand(1);
+  SDValue TrueV  = Op.getOperand(2);
+  SDValue FalseV = Op.getOperand(3);
+  ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(4))->get();
+  SDLoc dl   (Op);
+
+  SDValue TargetCC;
+  SDValue Flag = EmitCMP(LHS, RHS, TargetCC, CC, dl, DAG);
+
+  SDVTList VTs = DAG.getVTList(Op.getValueType(), MVT::Glue);
+  SDValue Ops[] = {TrueV, FalseV, TargetCC, Flag};
+
+  return DAG.getNode(CJGISD::SELECT_CC, dl, VTs, Ops);
 }

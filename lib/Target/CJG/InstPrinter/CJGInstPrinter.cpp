@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "CJG.h"
 #include "CJGInstPrinter.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCExpr.h"
@@ -72,4 +73,56 @@ void CJGInstPrinter::printMemSrcOperand(const MCInst *MI, unsigned OpNo,
     O << "+" << Offset.getImm();
   }
   O << "]";
+}
+
+void CJGInstPrinter::printPCRelImmOperand(const MCInst *MI, unsigned OpNo,
+                                             raw_ostream &O) {
+  const MCOperand &Op = MI->getOperand(OpNo);
+  if (Op.isImm())
+    O << Op.getImm();
+  else {
+    assert(Op.isExpr() && "unknown pcrel immediate operand");
+    Op.getExpr()->print(O, &MAI);
+  }
+}
+
+void CJGInstPrinter::printCCOperand(const MCInst *MI, unsigned OpNo,
+                                       raw_ostream &O) {
+  unsigned CC = MI->getOperand(OpNo).getImm();
+
+  switch (CC) {
+  default:
+   llvm_unreachable("Unsupported CC code");
+  case CJGCC::COND_C:
+   O << "c";
+   break;
+  case CJGCC::COND_N:
+   O << "n";
+   break;
+  case CJGCC::COND_V:
+   O << "v";
+   break;
+  case CJGCC::COND_Z:
+   O << "eq";
+   break;
+  case CJGCC::COND_NC:
+   O << "nc";
+   break;
+  case CJGCC::COND_NN:
+   O << "nn";
+   break;
+  case CJGCC::COND_NV:
+   O << "nv";
+   break;
+  case CJGCC::COND_NZ:
+   O << "ne";
+   break;
+  case CJGCC::COND_GE:
+   O << "ge";
+   break;
+  case CJGCC::COND_L:
+   O << "l";
+   break;
+
+  }
 }

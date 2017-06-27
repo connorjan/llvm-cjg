@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "MCTargetDesc/CJGFixupKinds.h"
 #include "MCTargetDesc/CJGMCTargetDesc.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/MC/MCCodeEmitter.h"
@@ -58,6 +59,11 @@ public:
                              SmallVectorImpl<MCFixup> &Fixups,
                              const MCSubtargetInfo &STI) const;
 
+  /// Return binary encoding of the memsrc operand
+  unsigned getMemSrcValue(const MCInst &MI, unsigned OpIdx,
+                          SmallVectorImpl<MCFixup> &Fixups,
+                          const MCSubtargetInfo &STI) const;
+
   void emitByte(unsigned char C, raw_ostream &OS) const { OS << (char)C; }
 
   void emitConstant(uint64_t Val, unsigned Size, raw_ostream &OS) const {
@@ -83,14 +89,56 @@ CJGMCCodeEmitter::getMachineOpValue(const MCInst &MI,
                                     SmallVectorImpl<MCFixup> &Fixups,
                                     const MCSubtargetInfo &STI) const {
 
-  if (MO.isReg())
+  if (MO.isReg()) {
     return CTX.getRegisterInfo()->getEncodingValue(MO.getReg());
+  }
 
-  if (MO.isImm())
+  if (MO.isImm()) {
     return static_cast<unsigned>(MO.getImm());
+  }
+    
+  if (MO.isExpr()) {
+    const MCExpr *Expr = MO.getExpr();
+    MCExpr::ExprKind Kind = Expr->getKind();
+
+    if (Kind == MCExpr::Constant) {
+      return cast<MCConstantExpr>(Expr)->getValue();
+    }
+
+    if (Kind == MCExpr::Binary) {
+      Expr = static_cast<const MCBinaryExpr*>(Expr)->getLHS();
+      Kind = Expr->getKind();
+    }
+
+    assert (Kind == MCExpr::SymbolRef && "unknown MCExpr kind");
+
+    CJG::Fixups FixupKind = CJG::Fixups(0);
+      
+    switch(cast<MCSymbolRefExpr>(Expr)->getKind()) {
+    default:
+      llvm_unreachable("Unknown fixup kind!");
+    case MCSymbolRefExpr::VK_None:
+      FixupKind = CJG::fixup_CJG_32;
+      break;
+    } // switch
+
+    Fixups.push_back(MCFixup::create(0, Expr, MCFixupKind(FixupKind)));
+    return 0;
+  }
 
   llvm_unreachable("Unhandled expression!");
   return 0;
+}
+
+unsigned CJGMCCodeEmitter::getMemSrcValue(const MCInst &MI, unsigned OpIdx,
+                                          SmallVectorImpl<MCFixup> &Fixups,
+                                          const MCSubtargetInfo &STI) const {
+  unsigned Bits = 0;
+  const MCOperand &RegOp = MI.getOperand(OpIdx);
+  const MCOperand &ImmOp = MI.getOperand(OpIdx + 1);
+  Bits |= (getMachineOpValue(MI, RegOp, Fixups, STI) << 16);
+  Bits |= (unsigned)ImmOp.getImm() & 0xfff;
+  return Bits;
 }
 
 void CJGMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,

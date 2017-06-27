@@ -18,20 +18,21 @@ class MCInst;
 class MCOperand;
 class MachineInstr;
 class MachineFunction;
-class Mangler;
 class AsmPrinter;
 
 /// \brief This class is used to lower an MachineInstr into an MCInst.
 class LLVM_LIBRARY_VISIBILITY CJGMCInstLower {
-  // typedef MachineOperand::MachineOperandType MachineOperandType;
-  MCContext *Ctx;
-  Mangler *Mang;
+  MCContext &Ctx;
   AsmPrinter &Printer;
 
 public:
-  CJGMCInstLower(class AsmPrinter &asmprinter);
-  void Initialize(Mangler *mang, MCContext *C);
+  CJGMCInstLower(MCContext &Ctx, AsmPrinter &Printer)
+  	: Ctx(Ctx), Printer(Printer) {}
   void Lower(const MachineInstr *MI, MCInst &OutMI) const;
+
+  MCOperand LowerSymbolOperand(const MachineOperand &MO, MCSymbol *Sym) const;
+
+  MCSymbol *GetGlobalAddressSymbol(const MachineOperand &MO) const;
 };
 }
 

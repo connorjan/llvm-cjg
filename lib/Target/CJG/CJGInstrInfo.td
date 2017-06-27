@@ -20,6 +20,11 @@ include "CJGInstrFormats.td"
 
 // Ensure the two operands of compare are of the same type
 def SDT_CJGCmp  : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>]>;
+def SDT_CJGBrCC  : SDTypeProfile<0, 2, [SDTCisVT<0, OtherVT>,
+                                        SDTCisVT<1, i32>]>;
+def SDT_CJGSelectCC     : SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>,
+                                               SDTCisSameAs<1, 2>, 
+                                               SDTCisVT<3, i32>]>;
 
 //===----------------------------------------------------------------------===//
 // CJG Specific Node Definitions.
@@ -28,6 +33,9 @@ def SDT_CJGCmp  : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>]>;
 def CJGretFlag : SDNode<"CJGISD::RET_FLAG", SDTNone,
                      [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 def CJGcmp     : SDNode<"CJGISD::CMP", SDT_CJGCmp, [SDNPOutGlue]>;
+def CJGbrcc    : SDNode<"CJGISD::BR_CC", SDT_CJGBrCC, [SDNPHasChain,
+                                                       SDNPInGlue]>;
+def CJGSelectCC: SDNode<"CJGISD::SELECT_CC", SDT_CJGSelectCC, [SDNPInGlue]>;
 
 //===----------------------------------------------------------------------===//
 // CJG Operand Definitions.
@@ -43,10 +51,21 @@ def CJGimm6 : Operand<i32>, ImmLeaf<i32, [{
   return Imm >= 0 && Imm < 64;
 }]>;
 
-// Address operand
+// Address operand for indexed addressing mode
 def memsrc : Operand<i32> {
   let PrintMethod = "printMemSrcOperand";
+  let EncoderMethod = "getMemSrcValue";
   let MIOperandInfo = (ops GPRegs, CJGimm16);
+}
+
+// Short jump targets have OtherVT type and are printed as pcrel imm values.
+def jmptarget : Operand<OtherVT> {
+  let PrintMethod = "printPCRelImmOperand";
+}
+
+// Operand for printing out a condition code.
+def cc : Operand<i32> {
+  let PrintMethod = "printCCOperand";
 }
 
 //===----------------------------------------------------------------------===//
@@ -217,16 +236,14 @@ def LD  : LS_Inst<0b00000,
                   (outs GPRegs:$ri), (ins memsrc:$addr),
                   "ld\t$ri, $addr",
                   [(set GPRegs:$ri, (load addr:$addr))]> {
-  let rj = 0b00000;   // For now set rj and control to 0
-  let control = 0b1;  // This forces absolute addressing mode
+  let control = 0b0;  // This forces indexed addressing mode
 }
 
 def ST  : LS_Inst<0b00001,
                   (outs), (ins memsrc:$addr, GPRegs:$ri),
                   "st\t$addr, $ri",
                   [(store GPRegs:$ri, addr:$addr)]> {
-  let rj = 0b00000;   // For now set rj and control to 0
-  let control = 0b1;  // This forces absolute addressing mode
+  let control = 0b0;  // This forces indexed addressing mode
 }
 
 //===----------------------------------------------------------------------===//
@@ -240,3 +257,43 @@ let isTerminator = 1, isReturn = 1, isBarrier = 1 in {
     let Inst{26-0}  = 0b000000000000000000000000000;
   }
 }
+
+//===----------------------------------------------------------------------===//
+// Jump (branch) Instructions
+//===----------------------------------------------------------------------===//
+
+// Unconditional jump
+let isBranch = 1, isTerminator = 1, isBarrier = 1 in {
+  def JMP : FC_Inst<0b00101,
+                    (outs), (ins jmptarget:$addr),
+                    "jmp\t$addr",
+                    [(br bb:$addr)]> {
+  // set ri to 0 and control to 1 for absolute addressing mode
+  let ri = 0b00000;
+  let condition = 0b0000;
+  let control = 0b1;
+}
+
+} // isBranch = 1, isTerminator = 1, isBarrier = 1
+
+// Conditional jump
+let isBranch = 1, isTerminator = 1, Uses=[SR] in {
+def JCC : FC_Inst<0b00101,
+                  (outs), (ins jmptarget:$addr, cc:$condition),
+                  "j$condition\t$addr",
+                  [(CJGbrcc bb:$addr, imm:$condition)]> {
+  // set ri to 0 and control to 1 for absolute addressing mode
+  let ri = 0b00000;
+  let control = 0b1;
+}
+} // isBranch = 1, isTerminator = 1
+
+//===----------------------------------------------------------------------===//
+// Non-Instruction Patterns
+//===----------------------------------------------------------------------===//
+let usesCustomInserter = 1 in
+def Select : CJGPseudoInst<(outs GPRegs:$dst),
+                    (ins GPRegs:$src, GPRegs:$src2, i32imm:$condition),
+                    "# Select PSEUDO",
+                    [(set GPRegs:$dst,
+                     (CJGSelectCC GPRegs:$src, GPRegs:$src2, imm:$condition))]>;

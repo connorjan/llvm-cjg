@@ -32,6 +32,12 @@ enum NodeType {
 
   // The compare instruction
   CMP,
+
+  // Branch conditional, condition-code
+  BR_CC,
+
+  // Select the condition code
+  SELECT_CC,
 };
 }
 
@@ -46,6 +52,9 @@ public:
 
   // Provide custom lowering hooks for some operations.
   virtual SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
+
+  SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG) const;
+  SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const;
 
   // This method returns the name of a target specific DAG node.
   virtual const char *getTargetNodeName(unsigned Opcode) const override;

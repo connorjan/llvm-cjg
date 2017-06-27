@@ -17,4 +17,5 @@ void CJGMCAsmInfo::anchor() {}
 CJGMCAsmInfo::CJGMCAsmInfo(const Triple &TT) {
   CommentString = "//";
   SupportsDebugInformation = true;
+  PrivateLabelPrefix = "";
 }

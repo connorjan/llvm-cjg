@@ -54,22 +54,21 @@ namespace {
   public:
     explicit CJGAsmPrinter(TargetMachine &TM,
                            std::unique_ptr<MCStreamer> Streamer)
-        : AsmPrinter(TM, std::move(Streamer)), MCInstLowering(*this) {}
+        : AsmPrinter(TM, std::move(Streamer)),
+          MCInstLowering(OutContext, *this) {}
 
     virtual StringRef getPassName() const {
         return StringRef("CJG Assembly Printer");
     }
-
+      
+//    void EmitBasicBlockStart(const MachineBasicBlock &MBB) const;
     void EmitFunctionEntryLabel();
     void EmitInstruction(const MachineInstr *MI);
     void EmitFunctionBodyStart();
   };
 } // end of anonymous namespace
 
-void CJGAsmPrinter::EmitFunctionBodyStart() {
-  MCInstLowering.Initialize(&TM.getObjFileLowering()->getMangler(),
-                            &MF->getContext());
-}
+void CJGAsmPrinter::EmitFunctionBodyStart() {}
 
 void CJGAsmPrinter::EmitFunctionEntryLabel() {
   OutStreamer->EmitLabel(CurrentFnSym);
@@ -80,6 +79,10 @@ void CJGAsmPrinter::EmitInstruction(const MachineInstr *MI) {
   MCInstLowering.Lower(MI, TmpInst);
   EmitToStreamer(*OutStreamer, TmpInst);
 }
+
+//void CJGAsmPrinter::EmitBasicBlockStart(const MachineBasicBlock &MBB) const {
+//    
+//}
 
 // Force static initialization.
 extern "C" void LLVMInitializeCJGAsmPrinter() {

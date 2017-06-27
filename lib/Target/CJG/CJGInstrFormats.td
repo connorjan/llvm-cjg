@@ -152,13 +152,34 @@ class LS_Inst<bits<5> opcode, dag outs, dag ins, string asmstr,
     : InstCJG<outs, ins, asmstr, pattern> {
 
   bits<5> ri;
-  bits<5> rj;
+  // bits<5> rj; // This is combined into the memsrc addr operand
+  bits<1> control;
+  bits<21> addr;
+
+  let Opcode = opcode;
+  let Inst{26-22} = ri;
+  let Inst{21-17} = addr{20-16}; // rj
+  let Inst{16} = control;
+  let Inst{15-0} = addr{15-0};
+}
+
+//===----------------------------------------------------------------------===//
+// Flow Control Instructions
+//===----------------------------------------------------------------------===//
+
+class FC_Inst<bits<5> opcode, dag outs, dag ins, string asmstr,
+                list<dag> pattern>
+    : InstCJG<outs, ins, asmstr, pattern> {
+
+  bits<5> ri;
+  bits<4> condition;
   bits<1> control;
   bits<16> addr;
 
   let Opcode = opcode;
-  let Inst{26-22} = ri;
-  let Inst{21-17} = rj;
-  let Inst{16} = control;
-  let Inst{15-0} = addr;
+  let Inst{26-22} = ri; // for addressing mode control
+  let Inst{21-18} = condition; // cnvz
+  let Inst{17} = 0b0; // unused
+  let Inst{16} = control; // for addressing mode control
+  let Inst{15-0} = addr; // target address
 }
