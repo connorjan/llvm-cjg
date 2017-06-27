@@ -153,7 +153,6 @@ void CJGAsmBackend::applyFixup(const MCFixup &Fixup, char *Data,
   // For now we are assuming fixups are only for jump/call addresses
   // FIXME: The arch is currently addressed by words so convert address to words
   assert(Value%4 == 0 && "The destination address is not aligned to a word");
-  Value = Value/4;
 
   // Place the address into the instruction
   Data[Offset] = Value & 0xFF;

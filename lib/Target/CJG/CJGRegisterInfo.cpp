@@ -73,9 +73,8 @@ void CJGRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     llvm_unreachable("Offset must be aligned to 4 bytes because memory is "
                      "32-bit word addressable only");
   }
-  int wordOffset = Offset/4;
   FIOp.ChangeToRegister(CJG::SP, false);
-  ImmOp.setImm(wordOffset);
+  ImmOp.setImm(Offset);
 }
 
 unsigned CJGRegisterInfo::getFrameRegister(const MachineFunction &MF) const {
