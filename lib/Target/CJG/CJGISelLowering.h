@@ -38,6 +38,10 @@ enum NodeType {
 
   // Select the condition code
   SELECT_CC,
+
+  // Wrapper - A wrapper node for TargetConstantPool, TargetExternalSymbol,
+  // and TargetGlobalAddress.
+  Wrapper,
 };
 }
 
@@ -55,7 +59,9 @@ public:
 
   SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const;
-
+  SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
+  SDValue LowerExternalSymbol(SDValue Op, SelectionDAG &DAG) const;
+  
   // This method returns the name of a target specific DAG node.
   virtual const char *getTargetNodeName(unsigned Opcode) const override;
 

@@ -51,9 +51,12 @@ void CJGInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
     return;
   }
 
+  if (Op.isExpr()) {
+    Op.getExpr()->print(O, &MAI);
+    return;
+  }
+
   llvm_unreachable("Unknown operand");
-  // assert(Op.isExpr() && "Unknown operand kind in printOperand");
-  // Op.getExpr()->print(O, &MAI);
 }
 
 // Print a memsrc (defined in CJGInstrInfo.td)

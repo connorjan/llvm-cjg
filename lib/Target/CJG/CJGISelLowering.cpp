@@ -42,6 +42,7 @@ const char *CJGTargetLowering::getTargetNodeName(unsigned Opcode) const {
     case CJGISD::RET_FLAG:                return "CJGISD::RET_FLAG";
     case CJGISD::BR_CC:                   return "CJGISD::BR_CC";
     case CJGISD::SELECT_CC:               return "CJGISD::SELECT_CC";
+    case CJGISD::Wrapper:                 return "CJGISD::Wrapper";
   }
   return nullptr;
 }
@@ -62,18 +63,21 @@ CJGTargetLowering::CJGTargetLowering(const CJGTargetMachine &TM,
 
   setBooleanContents(ZeroOrOneBooleanContent);
 
-  setOperationAction(ISD::BR_JT,      MVT::Other,   Expand);
-  setOperationAction(ISD::BR_CC,      MVT::i32,     Custom);
-  setOperationAction(ISD::BRCOND,     MVT::Other,   Expand);
-  setOperationAction(ISD::SELECT,     MVT::i32,     Expand);
-  setOperationAction(ISD::SELECT_CC,  MVT::i32,     Custom);
-
+  setOperationAction(ISD::BR_JT,            MVT::Other,   Expand);
+  setOperationAction(ISD::BR_CC,            MVT::i32,     Custom);
+  setOperationAction(ISD::BRCOND,           MVT::Other,   Expand);
+  setOperationAction(ISD::SELECT,           MVT::i32,     Expand);
+  setOperationAction(ISD::SELECT_CC,        MVT::i32,     Custom);
+  setOperationAction(ISD::GlobalAddress,    MVT::i32,     Custom);
+  setOperationAction(ISD::ExternalSymbol,   MVT::i32,     Custom);
 }
 
 SDValue CJGTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
     case ISD::BR_CC:            return LowerBR_CC(Op, DAG);
     case ISD::SELECT_CC:        return LowerSELECT_CC(Op, DAG);
+    case ISD::GlobalAddress:    return LowerGlobalAddress(Op, DAG);
+    case ISD::ExternalSymbol:   return LowerExternalSymbol(Op, DAG);
     default:
       llvm_unreachable("unimplemented operand");
   }
@@ -294,4 +298,25 @@ SDValue CJGTargetLowering::LowerSELECT_CC(SDValue Op,
   SDValue Ops[] = {TrueV, FalseV, TargetCC, Flag};
 
   return DAG.getNode(CJGISD::SELECT_CC, dl, VTs, Ops);
+}
+
+SDValue CJGTargetLowering::LowerGlobalAddress(SDValue Op,
+                                              SelectionDAG &DAG) const {
+  const GlobalValue *GV = cast<GlobalAddressSDNode>(Op)->getGlobal();
+  int64_t Offset = cast<GlobalAddressSDNode>(Op)->getOffset();
+  auto PtrVT = getPointerTy(DAG.getDataLayout());
+
+  // Create the TargetGlobalAddress node, folding in the constant offset.
+  SDValue Result = DAG.getTargetGlobalAddress(GV, SDLoc(Op), PtrVT, Offset);
+  return DAG.getNode(CJGISD::Wrapper, SDLoc(Op), PtrVT, Result);
+}
+
+SDValue CJGTargetLowering::LowerExternalSymbol(SDValue Op,
+                                               SelectionDAG &DAG) const {
+  SDLoc dl(Op);
+  const char *Sym = cast<ExternalSymbolSDNode>(Op)->getSymbol();
+  auto PtrVT = getPointerTy(DAG.getDataLayout());
+  SDValue Result = DAG.getTargetExternalSymbol(Sym, PtrVT);
+
+  return DAG.getNode(CJGISD::Wrapper, dl, PtrVT, Result);
 }

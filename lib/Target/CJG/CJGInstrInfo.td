@@ -19,12 +19,14 @@ include "CJGInstrFormats.td"
 //===----------------------------------------------------------------------===//
 
 // Ensure the two operands of compare are of the same type
-def SDT_CJGCmp  : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>]>;
-def SDT_CJGBrCC  : SDTypeProfile<0, 2, [SDTCisVT<0, OtherVT>,
-                                        SDTCisVT<1, i32>]>;
-def SDT_CJGSelectCC     : SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>,
-                                               SDTCisSameAs<1, 2>, 
-                                               SDTCisVT<3, i32>]>;
+def SDT_CJGCmp        : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>]>;
+def SDT_CJGBrCC       : SDTypeProfile<0, 2, [SDTCisVT<0, OtherVT>,
+                                             SDTCisVT<1, i32>]>;
+def SDT_CJGSelectCC   : SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>,
+                                             SDTCisSameAs<1, 2>, 
+                                             SDTCisVT<3, i32>]>;
+def SDT_CJGWrapper    : SDTypeProfile<1, 1, [SDTCisSameAs<0, 1>,
+                                             SDTCisPtrTy<0>]>;
 
 //===----------------------------------------------------------------------===//
 // CJG Specific Node Definitions.
@@ -36,6 +38,7 @@ def CJGcmp     : SDNode<"CJGISD::CMP", SDT_CJGCmp, [SDNPOutGlue]>;
 def CJGbrcc    : SDNode<"CJGISD::BR_CC", SDT_CJGBrCC, [SDNPHasChain,
                                                        SDNPInGlue]>;
 def CJGSelectCC: SDNode<"CJGISD::SELECT_CC", SDT_CJGSelectCC, [SDNPInGlue]>;
+def CJGWrapper : SDNode<"CJGISD::Wrapper", SDT_CJGWrapper>;
 
 //===----------------------------------------------------------------------===//
 // CJG Operand Definitions.
@@ -102,6 +105,8 @@ defm SUB  : ALU<0b01001, "sub", sub>;
 defm AND  : ALU<0b01100, "and", and>;
 defm OR   : ALU<0b01110, "or",  or>;
 defm XOR  : ALU<0b01111, "xor", xor>;
+defm MUL  : ALU<0b11010, "mul", mul>;
+defm DIV  : ALU<0b11011, "div", udiv>;
 
 // Instructions that need their own dag pattern
 
@@ -297,3 +302,17 @@ def Select : CJGPseudoInst<(outs GPRegs:$dst),
                     "# Select PSEUDO",
                     [(set GPRegs:$dst,
                      (CJGSelectCC GPRegs:$src, GPRegs:$src2, imm:$condition))]>;
+
+// GlobalAddress, ExternalSymbol
+def : Pat<(i32 (CJGWrapper tglobaladdr:$dst)), (CPYri tglobaladdr:$dst)>;
+def : Pat<(i32 (CJGWrapper texternalsym:$dst)), (CPYri texternalsym:$dst)>;
+
+def : Pat<(add GPRegs:$src, (CJGWrapper tglobaladdr:$src2)),
+          (ADDri GPRegs:$src, tglobaladdr:$src2)>;
+def : Pat<(add GPRegs:$src, (CJGWrapper texternalsym:$src2)),
+          (ADDri GPRegs:$src, texternalsym:$src2)>;
+
+def : Pat<(store (i32 (CJGWrapper tglobaladdr:$src)), addr:$dst),
+          (ST addr:$dst, tglobaladdr:$src)>;
+def : Pat<(store (i32 (CJGWrapper texternalsym:$src)), addr:$dst),
+          (ST addr:$dst, texternalsym:$src)>;
