@@ -57,6 +57,27 @@ void CJGDAGToDAGISel::Select(SDNode *Node) {
     return;
   }
 
+  SDLoc dl(Node);
+
+  // Few custom selection stuff.
+  switch (Node->getOpcode()) {
+    default: break;
+    case ISD::FrameIndex: {
+      assert(Node->getValueType(0) == MVT::i32);
+      int FI = cast<FrameIndexSDNode>(Node)->getIndex();
+      SDValue TFI = CurDAG->getTargetFrameIndex(FI, MVT::i32);
+      if (Node->hasOneUse()) {
+        CurDAG->SelectNodeTo(Node, CJG::ADDri, MVT::i32, TFI,
+                             CurDAG->getTargetConstant(0, dl, MVT::i32));
+        return;
+      } // else
+      ReplaceNode(Node, CurDAG->getMachineNode(
+                  CJG::ADDri, dl, MVT::i32, TFI,
+                  CurDAG->getTargetConstant(0, dl, MVT::i32)));
+      return;
+    }
+  }
+
   // Select the default instruction.
   SelectCode(Node);
 }

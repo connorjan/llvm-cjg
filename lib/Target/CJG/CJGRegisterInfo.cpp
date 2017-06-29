@@ -58,10 +58,10 @@ void CJGRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   unsigned ImmOpIdx = 0;
   switch (MI.getOpcode()) {
   default:
-    // Not supported yet.
-    return;
+    llvm_unreachable("Instruction not supported");
   case CJG::LD:
   case CJG::ST:
+  case CJG::ADDri:
     ImmOpIdx = FIOperandNum + 1;
     break;
   }

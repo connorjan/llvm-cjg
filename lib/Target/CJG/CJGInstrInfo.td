@@ -61,6 +61,13 @@ def memsrc : Operand<i32> {
   let MIOperandInfo = (ops GPRegs, CJGimm16);
 }
 
+// Pointer memory type
+def memptr : Operand<iPTR> {
+  let PrintMethod = "printMemSrcOperand";
+  let EncoderMethod = "getMemSrcValue";
+  let MIOperandInfo = (ops GPRegs, CJGimm16);
+}
+
 // Short jump targets have OtherVT type and are printed as pcrel imm values.
 def jmptarget : Operand<OtherVT> {
   let PrintMethod = "printPCRelImmOperand";
