@@ -37,11 +37,7 @@ def ProgramCounterReg : RegisterClass<"CJG", [i32], 32, (add
 	PC //R1
 )>;
 
-def StackPointerReg : RegisterClass<"CJG", [i32], 32, (add
-	SP //R2
-)>;
-
 // General purpose registers class
 def GPRegs : RegisterClass<"CJG", [i32], 32, (add
-	(sequence "R%u", 3, 31)
+	(sequence "R%u", 4, 31), SP, R3
 )>;

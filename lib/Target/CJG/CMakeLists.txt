@@ -21,6 +21,7 @@ add_llvm_target(CJGCodeGen
   CJGRegisterInfo.cpp
   CJGSubtarget.cpp
   CJGTargetMachine.cpp
+  CJGMachineFunctionInfo.cpp
   )
 
 add_subdirectory(InstPrinter)

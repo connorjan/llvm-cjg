@@ -19,14 +19,17 @@ include "CJGInstrFormats.td"
 //===----------------------------------------------------------------------===//
 
 // Ensure the two operands of compare are of the same type
-def SDT_CJGCmp        : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>]>;
-def SDT_CJGBrCC       : SDTypeProfile<0, 2, [SDTCisVT<0, OtherVT>,
-                                             SDTCisVT<1, i32>]>;
-def SDT_CJGSelectCC   : SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>,
-                                             SDTCisSameAs<1, 2>, 
-                                             SDTCisVT<3, i32>]>;
-def SDT_CJGWrapper    : SDTypeProfile<1, 1, [SDTCisSameAs<0, 1>,
-                                             SDTCisPtrTy<0>]>;
+def SDT_CJGCmp          : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>]>;
+def SDT_CJGBrCC         : SDTypeProfile<0, 2, [SDTCisVT<0, OtherVT>,
+                                               SDTCisVT<1, i32>]>;
+def SDT_CJGSelectCC     : SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>,
+                                               SDTCisSameAs<1, 2>, 
+                                               SDTCisVT<3, i32>]>;
+def SDT_CJGWrapper      : SDTypeProfile<1, 1, [SDTCisSameAs<0, 1>,
+                                               SDTCisPtrTy<0>]>;
+def SDT_CJGCall         : SDTypeProfile<0, -1, [SDTCisVT<0, iPTR>]>;
+def SDT_CJGCallSeqStart : SDCallSeqStart<[SDTCisVT<0, i32>]>;
+def SDT_CJGCallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i32>, SDTCisVT<1, i32>]>;
 
 //===----------------------------------------------------------------------===//
 // CJG Specific Node Definitions.
@@ -39,6 +42,14 @@ def CJGbrcc    : SDNode<"CJGISD::BR_CC", SDT_CJGBrCC, [SDNPHasChain,
                                                        SDNPInGlue]>;
 def CJGSelectCC: SDNode<"CJGISD::SELECT_CC", SDT_CJGSelectCC, [SDNPInGlue]>;
 def CJGWrapper : SDNode<"CJGISD::Wrapper", SDT_CJGWrapper>;
+def CJGcall    : SDNode<"CJGISD::CALL", SDT_CJGCall,
+                      [SDNPHasChain, SDNPOutGlue, SDNPOptInGlue, SDNPVariadic]>;
+def CJGcallseq_start :
+                 SDNode<"ISD::CALLSEQ_START", SDT_CJGCallSeqStart,
+                        [SDNPHasChain, SDNPOutGlue]>;
+def CJGcallseq_end :
+                 SDNode<"ISD::CALLSEQ_END",   SDT_CJGCallSeqEnd,
+                        [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue]>;
 
 //===----------------------------------------------------------------------===//
 // CJG Operand Definitions.
@@ -259,6 +270,25 @@ def ST  : LS_Inst<0b00001,
 }
 
 //===----------------------------------------------------------------------===//
+//  Call Instructions
+//===----------------------------------------------------------------------===//
+
+let isCall = 1 in
+  // All calls clobber the non-callee saved registers. SPW is marked as
+  // a use to prevent stack-pointer assignments that appear immediately
+  // before calls from potentially appearing dead. Uses for argument
+  // registers are added manually.
+  let Uses = [SP] in {
+    def CALLi : FC_Inst<0b00110,
+                        (outs), (ins CJGimm16:$addr),
+                        "call\t$addr", [(CJGcall imm:$addr)]> {
+      let ri = 0b00000;
+      let condition = 0b0000;
+      let control = 0b1;
+    }
+  } // Uses = [SP]
+
+//===----------------------------------------------------------------------===//
 // Return Instructions
 //===----------------------------------------------------------------------===//
 
@@ -301,6 +331,19 @@ def JCC : FC_Inst<0b00101,
 } // isBranch = 1, isTerminator = 1
 
 //===----------------------------------------------------------------------===//
+// Pseudo Instructions
+//===----------------------------------------------------------------------===//
+
+let Defs = [SP], Uses = [SP] in {
+def ADJCALLSTACKDOWN : CJGPseudoInst<(outs), (ins CJGimm16:$amt),
+                                     "#ADJCALLSTACKDOWN",
+                                     [(CJGcallseq_start timm:$amt)]>;
+def ADJCALLSTACKUP : CJGPseudoInst<(outs), (ins CJGimm16:$amt1, CJGimm16:$amt2),
+                                   "#ADJCALLSTACKUP",
+                                   [(CJGcallseq_end timm:$amt1, timm:$amt2)]>;
+}
+
+//===----------------------------------------------------------------------===//
 // Non-Instruction Patterns
 //===----------------------------------------------------------------------===//
 let usesCustomInserter = 1 in
@@ -323,3 +366,9 @@ def : Pat<(store (i32 (CJGWrapper tglobaladdr:$src)), addr:$dst),
           (ST addr:$dst, tglobaladdr:$src)>;
 def : Pat<(store (i32 (CJGWrapper texternalsym:$src)), addr:$dst),
           (ST addr:$dst, texternalsym:$src)>;
+
+// Calls
+def : Pat<(CJGcall (i32 tglobaladdr:$addr)),
+          (CALLi tglobaladdr:$addr)>;
+def : Pat<(CJGcall (i32 texternalsym:$addr)),
+          (CALLi texternalsym:$addr)>;

@@ -13,6 +13,9 @@
 // CJG Return Value Calling Convention
 //===----------------------------------------------------------------------===//
 def RetCC_CJG : CallingConv<[
+  // Promote i8/i16 arguments to i32.
+  CCIfType<[i8, i16], CCPromoteToType<i32>>,
+
   // i32 are returned in registers R24-R31
   CCIfType<[i32], CCAssignToReg<[R24, R25, R26, R27, R28, R29, R30, R31]>>,
 

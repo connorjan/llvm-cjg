@@ -32,6 +32,10 @@ struct CJGRegisterInfo : public CJGGenRegisterInfo {
 
   BitVector getReservedRegs(const MachineFunction &MF) const override;
 
+  const TargetRegisterClass*
+  getPointerRegClass(const MachineFunction &MF,
+                     unsigned Kind = 0) const override;
+
   void eliminateFrameIndex(MachineBasicBlock::iterator MI, int SPAdj,
                            unsigned FIOperandNum,
                            RegScavenger *RS = nullptr) const override;

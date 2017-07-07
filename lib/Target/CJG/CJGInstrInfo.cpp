@@ -54,12 +54,12 @@ void CJGInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
                                        const TargetRegisterClass *RC,
                                        const TargetRegisterInfo *TRI) const {
   DebugLoc DL;
-  if (MI != MBB.end()) {
-    DL = MI->getDebugLoc();
-  }
+  if (MI != MBB.end()) DL = MI->getDebugLoc();
+  MachineFunction &MF = *MBB.getParent();
+  MachineFrameInfo &MFI = MF.getFrameInfo();
 
   BuildMI(MBB, MI, DL, get(CJG::PUSH))
-    .addReg(SrcReg);
+    .addReg(SrcReg, getKillRegState(isKill));
 }
 
 void CJGInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
@@ -68,11 +68,12 @@ void CJGInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                         const TargetRegisterClass *RC,
                                         const TargetRegisterInfo *TRI) const{
   DebugLoc DL;
-  if (MI != MBB.end()) {
-    DL = MI->getDebugLoc();
-  }
+  if (MI != MBB.end()) DL = MI->getDebugLoc();
+  MachineFunction &MF = *MBB.getParent();
+  MachineFrameInfo &MFI = MF.getFrameInfo();
 
-  BuildMI(MBB, MI, DL, get(CJG::POP), DestReg);
+  BuildMI(MBB, MI, DL, get(CJG::POP))
+    .addReg(DestReg, getDefRegState(true));
 }
 
 bool CJGInstrInfo::

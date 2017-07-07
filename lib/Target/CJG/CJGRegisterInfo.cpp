@@ -27,7 +27,7 @@
 
 using namespace llvm;
 
-CJGRegisterInfo::CJGRegisterInfo() : CJGGenRegisterInfo(CJG::SR) {}
+CJGRegisterInfo::CJGRegisterInfo() : CJGGenRegisterInfo(CJG::PC) {}
 
 const MCPhysReg *
 CJGRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
@@ -44,9 +44,15 @@ BitVector CJGRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   return Reserved;
 }
 
+const TargetRegisterClass *
+CJGRegisterInfo::getPointerRegClass(const MachineFunction &MF, unsigned Kind)
+                                                                         const {
+  return &CJG::GPRegsRegClass;
+}
+
 void CJGRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
-                                            int SPAdj, unsigned FIOperandNum,
-                                            RegScavenger *RS) const {
+                                          int SPAdj, unsigned FIOperandNum,
+                                          RegScavenger *RS) const {
   MachineInstr &MI = *II;
   MachineBasicBlock &MBB = *MI.getParent();
   const MachineFunction &MF = *MBB.getParent();

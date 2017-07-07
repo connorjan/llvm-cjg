@@ -42,6 +42,10 @@ enum NodeType {
   // Wrapper - A wrapper node for TargetConstantPool, TargetExternalSymbol,
   // and TargetGlobalAddress.
   Wrapper,
+
+  /// CALL - These operations represent an abstract call
+  /// instruction, which includes a bunch of information.
+  CALL,
 };
 }
 
@@ -61,7 +65,7 @@ public:
   SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerExternalSymbol(SDValue Op, SelectionDAG &DAG) const;
-  
+
   // This method returns the name of a target specific DAG node.
   virtual const char *getTargetNodeName(unsigned Opcode) const override;
 
@@ -77,10 +81,19 @@ private:
                                const SDLoc &DL, SelectionDAG &DAG,
                                SmallVectorImpl<SDValue> &InVals) const override;
 
+  SDValue LowerCall(TargetLowering::CallLoweringInfo &CLI,
+                    SmallVectorImpl<SDValue> &InVals) const override;
+
   SDValue LowerReturn(SDValue Chain, CallingConv::ID CallConv, bool IsVarArg,
                       const SmallVectorImpl<ISD::OutputArg> &Outs,
                       const SmallVectorImpl<SDValue> &OutVals, const SDLoc &DL,
                       SelectionDAG &DAG) const override;
+
+  SDValue LowerCallResult(SDValue Chain, SDValue InFlag,
+                          CallingConv::ID CallConv, bool isVarArg,
+                          const SmallVectorImpl<ISD::InputArg> &Ins,
+                          const SDLoc &dl, SelectionDAG &DAG,
+                          SmallVectorImpl<SDValue> &InVals) const;
   
   bool shouldConvertConstantLoadToIntImm(const APInt &Imm,
                                          Type *Ty) const override {

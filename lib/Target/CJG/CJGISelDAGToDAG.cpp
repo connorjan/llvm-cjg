@@ -85,7 +85,8 @@ void CJGDAGToDAGISel::Select(SDNode *Node) {
 /// SelectAddr - returns true if it is able pattern match an addressing mode.
 /// It returns the operands which make up the maximal addressing mode it can
 /// match by reference.
-bool CJGDAGToDAGISel::SelectAddr(SDValue Addr, SDValue &BaseAddr, SDValue &Offset) {
+bool CJGDAGToDAGISel::SelectAddr(SDValue Addr,
+                                 SDValue &BaseAddr, SDValue &Offset) {
   if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
     EVT PtrVT = getTargetLowering()->getPointerTy(CurDAG->getDataLayout());
     BaseAddr = CurDAG->getTargetFrameIndex(FIN->getIndex(), PtrVT);

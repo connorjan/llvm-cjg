@@ -43,6 +43,7 @@ const char *CJGTargetLowering::getTargetNodeName(unsigned Opcode) const {
     case CJGISD::BR_CC:                   return "CJGISD::BR_CC";
     case CJGISD::SELECT_CC:               return "CJGISD::SELECT_CC";
     case CJGISD::Wrapper:                 return "CJGISD::Wrapper";
+    case CJGISD::CALL:                    return "CJGISD::CALL";
   }
   return nullptr;
 }
@@ -383,4 +384,277 @@ CJGTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
 
   MI.eraseFromParent(); // The pseudo instruction is gone now.
   return BB;
+}
+
+/// For each argument in a function store the number of pieces it is composed
+/// of.
+template<typename ArgT>
+static void ParseFunctionArgs(const SmallVectorImpl<ArgT> &Args,
+                              SmallVectorImpl<unsigned> &Out) {
+  unsigned CurrentArgIndex = ~0U;
+  for (unsigned i = 0, e = Args.size(); i != e; i++) {
+    if (CurrentArgIndex == Args[i].OrigArgIndex) {
+      Out.back()++;
+    } else {
+      Out.push_back(1);
+      CurrentArgIndex++;
+    }
+  }
+}
+
+/// Analyze incoming and outgoing function arguments. We need custom C++ code
+/// to handle special constraints in the ABI like reversing the order of the
+/// pieces of splitted arguments. In addition, all pieces of a certain argument
+/// have to be passed either using registers or the stack but never mixing both.
+template<typename ArgT>
+static void AnalyzeArguments(CCState &State,
+                             SmallVectorImpl<CCValAssign> &ArgLocs,
+                             const SmallVectorImpl<ArgT> &Args) {
+  static const MCPhysReg RegList[] = {
+    CJG::R24, CJG::R25, CJG::R26, CJG::R27, CJG::R28, CJG::R29, CJG::R30,
+    CJG::R31
+  };
+  static const unsigned NbRegs = array_lengthof(RegList);
+
+  if (State.isVarArg()) {
+    llvm_unreachable("Cannot support var args");
+  }
+
+  SmallVector<unsigned, 4> ArgsParts;
+  ParseFunctionArgs(Args, ArgsParts);
+
+  unsigned RegsLeft = NbRegs;
+  bool UseStack = false;
+  unsigned ValNo = 0;
+
+  for (unsigned i = 0, e = ArgsParts.size(); i != e; i++) {
+    MVT ArgVT = Args[ValNo].VT;
+    ISD::ArgFlagsTy ArgFlags = Args[ValNo].Flags;
+    MVT LocVT = ArgVT;
+    CCValAssign::LocInfo LocInfo = CCValAssign::Full;
+
+    // // Promote i8 to i16
+    // if (LocVT == MVT::i8) {
+    //   LocVT = MVT::i16;
+    //   if (ArgFlags.isSExt())
+    //       LocInfo = CCValAssign::SExt;
+    //   else if (ArgFlags.isZExt())
+    //       LocInfo = CCValAssign::ZExt;
+    //   else
+    //       LocInfo = CCValAssign::AExt;
+    // }
+
+    // Handle byval arguments
+    if (ArgFlags.isByVal()) {
+      State.HandleByVal(ValNo++, ArgVT, LocVT, LocInfo, 4, 4, ArgFlags);
+      continue;
+    }
+
+    unsigned Parts = ArgsParts[i];
+
+    if (!UseStack && Parts <= RegsLeft) {
+      unsigned FirstVal = ValNo;
+      for (unsigned j = 0; j < Parts; j++) {
+        unsigned Reg = State.AllocateReg(RegList);
+        State.addLoc(CCValAssign::getReg(ValNo++, ArgVT, Reg, LocVT, LocInfo));
+        RegsLeft--;
+      }
+
+      // Reverse the order of the pieces to agree with the "big endian" format
+      // required in the calling convention ABI.
+      SmallVectorImpl<CCValAssign>::iterator B = ArgLocs.begin() + FirstVal;
+      std::reverse(B, B + Parts);
+    } else {
+      UseStack = true;
+      for (unsigned j = 0; j < Parts; j++)
+        CC_CJG(ValNo++, ArgVT, LocVT, LocInfo, ArgFlags, State);
+    }
+  }
+}
+
+SDValue CJGTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
+                                     SmallVectorImpl<SDValue> &InVals) const {
+  SelectionDAG &DAG                     = CLI.DAG;
+  SDLoc &dl                             = CLI.DL;
+  SmallVectorImpl<ISD::OutputArg> &Outs = CLI.Outs;
+  SmallVectorImpl<SDValue> &OutVals     = CLI.OutVals;
+  SmallVectorImpl<ISD::InputArg> &Ins   = CLI.Ins;
+  SDValue Chain                         = CLI.Chain;
+  SDValue Callee                        = CLI.Callee;
+  bool &isTailCall                      = CLI.IsTailCall;
+  CallingConv::ID CallConv              = CLI.CallConv;
+  bool isVarArg                         = CLI.IsVarArg;
+
+  // CJG target does not yet support tail call optimization.
+  isTailCall = false;
+
+  // Analyze operands of the call, assigning locations to each operand.
+  SmallVector<CCValAssign, 16> ArgLocs;
+  CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(), ArgLocs,
+                 *DAG.getContext());
+  AnalyzeArguments(CCInfo, ArgLocs, Outs);
+
+  // Get a count of how many bytes are to be pushed on the stack.
+  unsigned NumBytes = CCInfo.getNextStackOffset();
+  auto PtrVT = getPointerTy(DAG.getDataLayout());
+
+  Chain = DAG.getCALLSEQ_START(Chain,
+                               DAG.getConstant(NumBytes, dl, PtrVT, true), dl);
+
+  SmallVector<std::pair<unsigned, SDValue>, 4> RegsToPass;
+  SmallVector<SDValue, 12> MemOpChains;
+  SDValue StackPtr;
+
+  // Walk the register/memloc assignments, inserting copies/loads.
+  for (unsigned i = 0, e = ArgLocs.size(); i != e; ++i) {
+    CCValAssign &VA = ArgLocs[i];
+
+    SDValue Arg = OutVals[i];
+
+    // Promote the value if needed.
+    switch (VA.getLocInfo()) {
+      default: llvm_unreachable("Unknown loc info!");
+      case CCValAssign::Full: break;
+      // case CCValAssign::SExt:
+      //   Arg = DAG.getNode(ISD::SIGN_EXTEND, dl, VA.getLocVT(), Arg);
+      //   break;
+      // case CCValAssign::ZExt:
+      //   Arg = DAG.getNode(ISD::ZERO_EXTEND, dl, VA.getLocVT(), Arg);
+      //   break;
+      // case CCValAssign::AExt:
+      //   Arg = DAG.getNode(ISD::ANY_EXTEND, dl, VA.getLocVT(), Arg);
+      //   break;
+    }
+
+    // Arguments that can be passed on register must be kept at RegsToPass
+    // vector
+    if (VA.isRegLoc()) {
+      RegsToPass.push_back(std::make_pair(VA.getLocReg(), Arg));
+    } else {
+      assert(VA.isMemLoc());
+
+      if (!StackPtr.getNode())
+        StackPtr = DAG.getCopyFromReg(Chain, dl, CJG::SP, PtrVT);
+
+      SDValue PtrOff =
+          DAG.getNode(ISD::ADD, dl, PtrVT, StackPtr,
+                      DAG.getIntPtrConstant(VA.getLocMemOffset(), dl));
+
+      SDValue MemOp;
+      ISD::ArgFlagsTy Flags = Outs[i].Flags;
+
+      if (Flags.isByVal()) {
+        SDValue SizeNode = DAG.getConstant(Flags.getByValSize(), dl, MVT::i32);
+        MemOp = DAG.getMemcpy(Chain, dl, PtrOff, Arg, SizeNode,
+                              Flags.getByValAlign(),
+                              /*isVolatile*/false,
+                              /*AlwaysInline=*/true,
+                              /*isTailCall=*/false,
+                              MachinePointerInfo(),
+                              MachinePointerInfo());
+      } else {
+        MemOp = DAG.getStore(Chain, dl, Arg, PtrOff, MachinePointerInfo());
+      }
+
+      MemOpChains.push_back(MemOp);
+    }
+  }
+
+  // Transform all store nodes into one single node because all store nodes are
+  // independent of each other.
+  if (!MemOpChains.empty())
+    Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other, MemOpChains);
+
+  // Build a sequence of copy-to-reg nodes chained together with token chain and
+  // flag operands which copy the outgoing args into registers.  The InFlag in
+  // necessary since all emitted instructions must be stuck together.
+  SDValue InFlag;
+  for (unsigned i = 0, e = RegsToPass.size(); i != e; ++i) {
+    Chain = DAG.getCopyToReg(Chain, dl, RegsToPass[i].first,
+                             RegsToPass[i].second, InFlag);
+    InFlag = Chain.getValue(1);
+  }
+
+  // If the callee is a GlobalAddress node (quite common, every direct call is)
+  // turn it into a TargetGlobalAddress node so that legalize doesn't hack it.
+  // Likewise ExternalSymbol -> TargetExternalSymbol.
+  if (GlobalAddressSDNode *G = dyn_cast<GlobalAddressSDNode>(Callee))
+    Callee = DAG.getTargetGlobalAddress(G->getGlobal(), dl, MVT::i32);
+  else if (ExternalSymbolSDNode *E = dyn_cast<ExternalSymbolSDNode>(Callee))
+    Callee = DAG.getTargetExternalSymbol(E->getSymbol(), MVT::i32);
+
+  // Returns a chain & a flag for retval copy to use.
+  SDVTList NodeTys = DAG.getVTList(MVT::Other, MVT::Glue);
+  SmallVector<SDValue, 8> Ops;
+  Ops.push_back(Chain);
+  Ops.push_back(Callee);
+
+  // Add argument registers to the end of the list so that they are
+  // known live into the call.
+  for (unsigned i = 0, e = RegsToPass.size(); i != e; ++i)
+    Ops.push_back(DAG.getRegister(RegsToPass[i].first,
+                                  RegsToPass[i].second.getValueType()));
+
+  if (InFlag.getNode())
+    Ops.push_back(InFlag);
+
+  Chain = DAG.getNode(CJGISD::CALL, dl, NodeTys, Ops);
+  InFlag = Chain.getValue(1);
+
+  // Create the CALLSEQ_END node.
+  Chain = DAG.getCALLSEQ_END(Chain, DAG.getConstant(NumBytes, dl, PtrVT, true),
+                             DAG.getConstant(0, dl, PtrVT, true), InFlag, dl);
+  InFlag = Chain.getValue(1);
+
+  // Handle result values, copying them out of physregs into vregs that we
+  // return.
+  return LowerCallResult(Chain, InFlag, CallConv, isVarArg, Ins, dl,
+                         DAG, InVals);
+}
+
+static void AnalyzeRetResult(CCState &State,
+                             const SmallVectorImpl<ISD::InputArg> &Ins) {
+  State.AnalyzeCallResult(Ins, RetCC_CJG);
+}
+
+static void AnalyzeRetResult(CCState &State,
+                             const SmallVectorImpl<ISD::OutputArg> &Outs) {
+  State.AnalyzeReturn(Outs, RetCC_CJG);
+}
+
+template<typename ArgT>
+static void AnalyzeReturnValues(CCState &State,
+                                SmallVectorImpl<CCValAssign> &RVLocs,
+                                const SmallVectorImpl<ArgT> &Args) {
+  AnalyzeRetResult(State, Args);
+
+  // Reverse splitted return values to get the "big endian" format required
+  // to agree with the calling convention ABI.
+  std::reverse(RVLocs.begin(), RVLocs.end());
+}
+
+/// LowerCallResult - Lower the result values of a call into the
+/// appropriate copies out of appropriate physical registers.
+///
+SDValue CJGTargetLowering::LowerCallResult(
+    SDValue Chain, SDValue InFlag, CallingConv::ID CallConv, bool isVarArg,
+    const SmallVectorImpl<ISD::InputArg> &Ins, const SDLoc &dl,
+    SelectionDAG &DAG, SmallVectorImpl<SDValue> &InVals) const {
+
+  // Assign locations to each value returned by this call.
+  SmallVector<CCValAssign, 16> RVLocs;
+  CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(), RVLocs,
+                 *DAG.getContext());
+
+  AnalyzeReturnValues(CCInfo, RVLocs, Ins);
+
+  // Copy all of the result registers out of their specified physreg.
+  for (unsigned i = 0; i != RVLocs.size(); ++i) {
+    Chain = DAG.getCopyFromReg(Chain, dl, RVLocs[i].getLocReg(),
+                               RVLocs[i].getValVT(), InFlag).getValue(1);
+    InFlag = Chain.getValue(2);
+    InVals.push_back(Chain.getValue(0));
+  }
+
+  return Chain;
 }
