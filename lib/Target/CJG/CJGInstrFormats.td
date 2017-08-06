@@ -19,7 +19,7 @@ class InstCJG<dag outs, dag ins, string asmstr, list<dag> pattern>
   dag InOperandList = ins;
   let AsmString   = asmstr;
   let Pattern = pattern;
-  let Size = 4; // Not sure what this means, 4 bytes maybe?
+  let Size = 4;
 
   // define Opcode in base class because all instrutions have the same
   // bit-size and bit-location for the Opcode

@@ -137,7 +137,7 @@ unsigned CJGMCCodeEmitter::getMemSrcValue(const MCInst &MI, unsigned OpIdx,
   const MCOperand &RegOp = MI.getOperand(OpIdx);
   const MCOperand &ImmOp = MI.getOperand(OpIdx + 1);
   Bits |= (getMachineOpValue(MI, RegOp, Fixups, STI) << 16);
-  Bits |= (unsigned)ImmOp.getImm() & 0xfff;
+  Bits |= (unsigned)ImmOp.getImm() & 0xffff;
   return Bits;
 }
 

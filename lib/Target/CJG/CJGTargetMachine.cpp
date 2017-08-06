@@ -13,10 +13,6 @@
 
 #include "CJGTargetMachine.h"
 #include "MCTargetDesc/CJGMCTargetDesc.h"
-// #include "LEGFrameLowering.h"
-// #include "LEGInstrInfo.h"
-// #include "LEGISelLowering.h"
-// #include "LEGSelectionDAGInfo.h"
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"

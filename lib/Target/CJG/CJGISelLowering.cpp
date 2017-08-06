@@ -71,6 +71,15 @@ CJGTargetLowering::CJGTargetLowering(const CJGTargetMachine &TM,
   setOperationAction(ISD::SELECT_CC,        MVT::i32,     Custom);
   setOperationAction(ISD::GlobalAddress,    MVT::i32,     Custom);
   setOperationAction(ISD::ExternalSymbol,   MVT::i32,     Custom);
+
+  for (MVT VT : MVT::integer_valuetypes()) {
+    for (auto N : {ISD::EXTLOAD, ISD::SEXTLOAD, ISD::ZEXTLOAD}) {
+      setLoadExtAction(N, VT, MVT::i1, Promote);
+      setLoadExtAction(N, VT, MVT::i8, Custom);
+      setLoadExtAction(N, VT, MVT::i16, Custom);
+    }
+  }
+
 }
 
 SDValue CJGTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {

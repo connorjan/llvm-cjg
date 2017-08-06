@@ -15,10 +15,6 @@
 #define CJGTARGETMACHINE_H
 
 #include "CJG.h"
-// #include "LEGFrameLowering.h"
-// #include "LEGISelLowering.h"
-// #include "LEGInstrInfo.h"
-// #include "LEGSelectionDAGInfo.h"
 #include "CJGSubtarget.h"
 #include "MCTargetDesc/CJGMCTargetDesc.h"
 #include "llvm/IR/DataLayout.h"

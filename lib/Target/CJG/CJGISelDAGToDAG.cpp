@@ -93,6 +93,9 @@ bool CJGDAGToDAGISel::SelectAddr(SDValue Addr,
     Offset = CurDAG->getTargetConstant(0, Addr, MVT::i32);
     return true;
   }
+  else {
+    BaseAddr = Addr;
+  }
   
   if (Addr.getOpcode() == ISD::TargetExternalSymbol ||
       Addr.getOpcode() == ISD::TargetGlobalAddress ||
@@ -100,8 +103,13 @@ bool CJGDAGToDAGISel::SelectAddr(SDValue Addr,
     return false; // direct calls.
   }
 
-  BaseAddr = Addr;
-  Offset = CurDAG->getTargetConstant(0, Addr, MVT::i32);
+  if (CurDAG->isBaseWithConstantOffset(Addr)) {
+    ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1));
+    Offset = CurDAG->getTargetConstant(CN->getZExtValue(), Addr, MVT::i32);
+  }
+  else {
+    Offset = CurDAG->getTargetConstant(0, Addr, MVT::i32);
+  }
   return true;
 }
 
